@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Index of /ZenithOS/</title>
+<style>
+    body {
+        background: #0d0d0d;
+        color: #e0e0e0;
+        font-family: monospace;
+        margin: 40px;
+    }
+
+    h1 {
+        font-size: 20px;
+        margin-bottom: 20px;
+        font-weight: normal;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    td {
+        padding: 6px 10px;
+    }
+
+    tr:nth-child(even) {
+        background: #141414;
+    }
+
+    tr:hover {
+        background: #1f1f1f;
+        cursor: pointer;
+    }
+
+    .name {
+        color: #8ab4f8;
+    }
+
+    .date {
+        text-align: right;
+        color: #888;
+    }
+
+    a {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+</style>
+</head>
+<body>
+
+<h1>Index of /ZenithOS/</h1>
+
+<table id="repoTable"></table>
+
+<script>
+const allowedPrefixes = [
+    "abi","art","bionic","bootable","build","cts","dalvik",
+    "developers","development","device","docs","external",
+    "frameworks","hardware","libcore","libnativehelper",
+    "make","ndk","packages","pdk","prebuilts",
+    "system","tools"
+];
+
+async function loadRepos() {
+    const res = await fetch("https://api.github.com/users/pigeonbattlehost/repos?per_page=100");
+    const repos = await res.json();
+
+    const table = document.getElementById("repoTable");
+
+    repos
+        .filter(repo => {
+            return allowedPrefixes.some(prefix =>
+                repo.name === prefix || repo.name.startsWith(prefix + "_")
+            );
+        })
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach(repo => {
+            const tr = document.createElement("tr");
+
+            const nameTd = document.createElement("td");
+            const dateTd = document.createElement("td");
+
+            nameTd.className = "name";
+            dateTd.className = "date";
+
+            const link = document.createElement("a");
+            link.href = repo.html_url;
+            link.textContent = repo.name;
+
+            nameTd.appendChild(link);
+            dateTd.textContent = new Date(repo.updated_at)
+    .toISOString()   // 2026-04-01T18:42:55.123Z
+    .replace("T", " ")   // 2026-04-01 18:42:55.123Z
+    .split(".")[0];      // 2026-04-01 18:42:55
+
+            tr.appendChild(nameTd);
+            tr.appendChild(dateTd);
+
+            tr.onclick = () => window.location = repo.html_url;
+
+            table.appendChild(tr);
+        });
+}
+
+loadRepos();
+</script>
+
+</body>
+</html>
