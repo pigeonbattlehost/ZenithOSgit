@@ -1,20 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Index of /ZenithOS/</title>
 <style>
+    :root {
+        --bg: #0d0d0d;
+        --bg2: #141414;
+        --bg3: #1f1f1f;
+        --text: #e0e0e0;
+        --muted: #888;
+        --link: #8ab4f8;
+        --border: #222;
+    }
+
     body {
-        background: #0d0d0d;
-        color: #e0e0e0;
+        background: var(--bg);
+        color: var(--text);
         font-family: monospace;
         margin: 40px;
     }
 
     h1 {
         font-size: 20px;
-        margin-bottom: 20px;
+        margin: 0 0 10px 0;
         font-weight: normal;
+    }
+
+    .sub {
+        color: var(--muted);
+        margin-bottom: 20px;
+        font-size: 13px;
+    }
+
+    .bar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+    }
+
+    .crumbs a,
+    .back {
+        color: var(--link);
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .crumbs span {
+        color: var(--muted);
+    }
+
+    .hint {
+        color: var(--muted);
+        font-size: 12px;
     }
 
     table {
@@ -24,24 +65,28 @@
 
     td {
         padding: 6px 10px;
+        border-bottom: 1px solid transparent;
     }
 
     tr:nth-child(even) {
-        background: #141414;
+        background: var(--bg2);
     }
 
     tr:hover {
-        background: #1f1f1f;
+        background: var(--bg3);
         cursor: pointer;
     }
 
     .name {
-        color: #8ab4f8;
+        color: var(--link);
+        width: 70%;
+        word-break: break-word;
     }
 
     .date {
         text-align: right;
-        color: #888;
+        color: var(--muted);
+        white-space: nowrap;
     }
 
     a {
@@ -49,15 +94,89 @@
         color: inherit;
         display: block;
     }
+
+    .panel {
+        display: none;
+    }
+
+    .panel.active {
+        display: block;
+    }
+
+    .loading,
+    .error {
+        color: var(--muted);
+        padding: 8px 0;
+        font-size: 13px;
+    }
+
+    .error {
+        color: #ff9b9b;
+    }
+
+    .file-meta {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin: 10px 0 16px 0;
+        color: var(--muted);
+        font-size: 13px;
+    }
+
+    pre {
+        margin: 0;
+        padding: 16px;
+        background: #080808;
+        border: 1px solid var(--border);
+        overflow: auto;
+        line-height: 1.45;
+        font-size: 13px;
+        white-space: pre;
+    }
+
+    .path {
+        color: var(--link);
+        word-break: break-all;
+    }
+
+    .small {
+        font-size: 12px;
+        color: var(--muted);
+    }
 </style>
 </head>
 <body>
 
-<h1>Index of /ZenithOS/</h1>
+<div id="rootView" class="panel active">
+    <h1 id="rootTitle">Index of /ZenithOS/</h1>
+    <div class="sub" id="rootSub">Loading repos…</div>
+    <table id="repoTable"></table>
+</div>
 
-<table id="repoTable"></table>
+<div id="repoView" class="panel">
+    <h1 id="repoTitle">Index of /ZenithOS/</h1>
+    <div class="bar">
+        <div class="crumbs" id="repoCrumbs"></div>
+        <div class="hint" id="repoHint"></div>
+    </div>
+    <table id="contentTable"></table>
+</div>
+
+<div id="fileView" class="panel">
+    <h1 id="fileTitle">Index of file</h1>
+    <div class="bar">
+        <div class="crumbs">
+            <a class="back" id="fileBack">← back</a>
+        </div>
+        <div class="hint" id="fileHint"></div>
+    </div>
+    <div class="file-meta" id="fileMeta"></div>
+    <pre id="fileContent">Loading…</pre>
+</div>
 
 <script>
+const OWNER = "pigeonbattlehost";
+
 const allowedPrefixes = [
     "abi","art","bionic","bootable","build","cts","dalvik",
     "developers","development","device","docs","external",
@@ -66,48 +185,360 @@ const allowedPrefixes = [
     "system","tools"
 ];
 
-async function loadRepos() {
-    const res = await fetch("https://api.github.com/users/pigeonbattlehost/repos?per_page=100");
-    const repos = await res.json();
+// Optional, if you ever want to raise the API rate limit:
+// const GITHUB_TOKEN = "PUT_TOKEN_HERE";
+// and add Authorization header below.
+const GITHUB_TOKEN = "";
+
+let allRepos = [];
+let repoMap = new Map();
+
+function headers() {
+    const h = {
+        "Accept": "application/vnd.github+json"
+    };
+    if (GITHUB_TOKEN) h["Authorization"] = "Bearer " + GITHUB_TOKEN;
+    return h;
+}
+
+function escapeHtml(str) {
+    return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+}
+
+function virtualRepoPath(repoName) {
+    return repoName.split("_").join("/");
+}
+
+function repoMatchesRootFilter(name) {
+    return allowedPrefixes.some(prefix => name === prefix || name.startsWith(prefix + "_"));
+}
+
+function shortSha(sha) {
+    return sha ? sha.slice(0, 7) : "";
+}
+
+function fmtDate(dateStr) {
+    if (!dateStr) return "";
+    return new Date(dateStr).toISOString().replace("T", " ").split(".")[0];
+}
+
+function setActivePanel(which) {
+    document.getElementById("rootView").classList.toggle("active", which === "root");
+    document.getElementById("repoView").classList.toggle("active", which === "repo");
+    document.getElementById("fileView").classList.toggle("active", which === "file");
+}
+
+function decodePathPart(p) {
+    return decodeURIComponent(p || "");
+}
+
+function encodePathPart(p) {
+    return encodeURIComponent(p).replaceAll("%2F", "/");
+}
+
+async function fetchJson(url) {
+    const res = await fetch(url, { headers: headers() });
+    if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`${res.status} ${res.statusText}${text ? " — " + text.slice(0, 180) : ""}`);
+    }
+    return res.json();
+}
+
+async function fetchText(url) {
+    const res = await fetch(url, { headers: headers() });
+    if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`${res.status} ${res.statusText}${text ? " — " + text.slice(0, 180) : ""}`);
+    }
+    return res.text();
+}
+
+async function loadAllRepos() {
+    const collected = [];
+    for (let page = 1; page <= 10; page++) {
+        const url = `https://api.github.com/users/${OWNER}/repos?per_page=100&page=${page}&sort=updated`;
+        const batch = await fetchJson(url);
+        if (!Array.isArray(batch) || batch.length === 0) break;
+        collected.push(...batch);
+        if (batch.length < 100) break;
+    }
+    allRepos = collected.filter(r => repoMatchesRootFilter(r.name));
+    allRepos.sort((a, b) => virtualRepoPath(a.name).localeCompare(virtualRepoPath(b.name)));
+    repoMap = new Map(allRepos.map(r => [r.name, r]));
+}
+
+function findRepoByName(name) {
+    return repoMap.get(name) || null;
+}
+
+function findRepoByVirtualPath(pathParts) {
+    const path = pathParts.join("/");
+    return allRepos.find(r => virtualRepoPath(r.name) === path) || null;
+}
+
+function renderRoot() {
+    setActivePanel("root");
 
     const table = document.getElementById("repoTable");
+    const sub = document.getElementById("rootSub");
+    const title = document.getElementById("rootTitle");
 
-    repos
-        .filter(repo => {
-            return allowedPrefixes.some(prefix =>
-                repo.name === prefix || repo.name.startsWith(prefix + "_")
-            );
-        })
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .forEach(repo => {
+    title.textContent = "Index of /ZenithOS/";
+    sub.textContent = `Showing ${allRepos.length} filtered repos`;
+
+    table.innerHTML = "";
+
+    allRepos.forEach(repo => {
+        const tr = document.createElement("tr");
+
+        const nameTd = document.createElement("td");
+        const dateTd = document.createElement("td");
+
+        nameTd.className = "name";
+        dateTd.className = "date";
+
+        const path = virtualRepoPath(repo.name);
+
+        const a = document.createElement("a");
+        a.href = "#/repo/" + encodePathPart(repo.name);
+        a.textContent = path;
+
+        nameTd.appendChild(a);
+        dateTd.textContent = fmtDate(repo.updated_at);
+
+        tr.appendChild(nameTd);
+        tr.appendChild(dateTd);
+
+        tr.onclick = () => location.hash = "#/repo/" + encodePathPart(repo.name);
+
+        table.appendChild(tr);
+    });
+}
+
+async function renderRepo(repoName, innerPath = "") {
+    const repo = findRepoByName(repoName);
+    if (!repo) {
+        showError("Repo not found.");
+        return;
+    }
+
+    setActivePanel("repo");
+
+    const title = document.getElementById("repoTitle");
+    const crumbs = document.getElementById("repoCrumbs");
+    const hint = document.getElementById("repoHint");
+    const table = document.getElementById("contentTable");
+
+    const basePath = virtualRepoPath(repo.name);
+    const fullPath = innerPath ? `${basePath}/${innerPath}` : basePath;
+
+    title.textContent = `Index of /ZenithOS/${fullPath}/`;
+
+    crumbs.innerHTML = "";
+    const home = document.createElement("a");
+    home.textContent = "ZenithOS";
+    home.onclick = () => location.hash = "#/";
+    crumbs.appendChild(home);
+
+    const parts = basePath.split("/").filter(Boolean);
+    let acc = "";
+    for (const part of parts) {
+        acc += (acc ? "/" : "") + part;
+        const sep = document.createElement("span");
+        sep.textContent = " / ";
+        crumbs.appendChild(sep);
+
+        const link = document.createElement("a");
+        link.textContent = part;
+        link.onclick = () => location.hash = "#/repo/" + encodePathPart(repo.name);
+        crumbs.appendChild(link);
+    }
+
+    if (innerPath) {
+        const extra = innerPath.split("/").filter(Boolean);
+        let cur = "";
+        for (const part of extra) {
+            cur += (cur ? "/" : "") + part;
+            const sep = document.createElement("span");
+            sep.textContent = " / ";
+            crumbs.appendChild(sep);
+
+            const link = document.createElement("a");
+            link.textContent = part;
+            link.onclick = () => location.hash = "#/repo/" + encodePathPart(repo.name) + "/" + encodePathPart(cur);
+            crumbs.appendChild(link);
+        }
+    }
+
+    table.innerHTML = `<tr><td class="loading">Loading…</td><td></td></tr>`;
+
+    try {
+        const apiPath = innerPath ? `/${innerPath.split("/").map(encodeURIComponent).join("/")}` : "";
+        const url = `https://api.github.com/repos/${OWNER}/${repo.name}/contents${apiPath}`;
+        const data = await fetchJson(url);
+
+        const items = Array.isArray(data) ? data : [data];
+        items.sort((a, b) => {
+            if (a.type !== b.type) return a.type === "dir" ? -1 : 1;
+            return a.name.localeCompare(b.name);
+        });
+
+        table.innerHTML = "";
+
+        if (items.length === 0) {
+            table.innerHTML = `<tr><td class="small">Empty.</td><td></td></tr>`;
+            return;
+        }
+
+        items.forEach(item => {
             const tr = document.createElement("tr");
-
             const nameTd = document.createElement("td");
             const dateTd = document.createElement("td");
 
             nameTd.className = "name";
             dateTd.className = "date";
 
-            const link = document.createElement("a");
-            link.href = repo.html_url;
-            link.textContent = repo.name;
+            const a = document.createElement("a");
+            const nextPath = innerPath ? `${innerPath}/${item.name}` : item.name;
 
-            nameTd.appendChild(link);
-            dateTd.textContent = new Date(repo.updated_at)
-    .toISOString()   // 2026-04-01T18:42:55.123Z
-    .replace("T", " ")   // 2026-04-01 18:42:55.123Z
-    .split(".")[0];      // 2026-04-01 18:42:55
+            if (item.type === "dir") {
+                a.href = "#/repo/" + encodePathPart(repo.name) + "/" + encodePathPart(nextPath);
+                a.textContent = item.name + "/";
+                tr.onclick = () => location.hash = "#/repo/" + encodePathPart(repo.name) + "/" + encodePathPart(nextPath);
+                dateTd.textContent = "dir";
+            } else {
+                a.href = "#/file/" + encodePathPart(repo.name) + "/" + encodePathPart(nextPath);
+                a.textContent = item.name;
+                tr.onclick = () => location.hash = "#/file/" + encodePathPart(repo.name) + "/" + encodePathPart(nextPath);
+                dateTd.textContent = item.size != null ? `${item.size} B` : "file";
+            }
 
+            nameTd.appendChild(a);
             tr.appendChild(nameTd);
             tr.appendChild(dateTd);
-
-            tr.onclick = () => window.location = repo.html_url;
-
             table.appendChild(tr);
         });
+    } catch (e) {
+        table.innerHTML = `<tr><td class="error">Error: ${escapeHtml(e.message)}</td><td></td></tr>`;
+    }
 }
 
-loadRepos();
+async function renderFile(repoName, filePath) {
+    const repo = findRepoByName(repoName);
+    if (!repo) {
+        showError("Repo not found.");
+        return;
+    }
+
+    setActivePanel("file");
+
+    const basePath = virtualRepoPath(repo.name);
+    const displayPath = `${basePath}/${filePath}`;
+
+    document.getElementById("fileTitle").textContent = `Index of /ZenithOS/${displayPath}`;
+    document.getElementById("fileBack").onclick = () => {
+        const parent = filePath.split("/").slice(0, -1).join("/");
+        location.hash = parent
+            ? `#/repo/${encodePathPart(repo.name)}/${encodePathPart(parent)}`
+            : `#/repo/${encodePathPart(repo.name)}`;
+    };
+
+    document.getElementById("fileHint").textContent = "file viewer";
+    document.getElementById("fileMeta").innerHTML = "";
+    document.getElementById("fileContent").textContent = "Loading…";
+
+    try {
+        const apiUrl = `https://api.github.com/repos/${OWNER}/${repo.name}/contents/${filePath.split("/").map(encodeURIComponent).join("/")}`;
+        const fileData = await fetchJson(apiUrl);
+
+        let text = "";
+        let rawText = null;
+
+        if (fileData && fileData.encoding === "base64" && typeof fileData.content === "string") {
+            text = atob(fileData.content.replace(/\n/g, ""));
+        } else if (fileData && fileData.download_url) {
+            rawText = await fetchText(fileData.download_url);
+            text = rawText;
+        } else {
+            text = "[binary or unavailable file]";
+        }
+
+        let commit = null;
+        try {
+            const commitsUrl = `https://api.github.com/repos/${OWNER}/${repo.name}/commits?path=${encodeURIComponent(filePath)}&per_page=1`;
+            const commits = await fetchJson(commitsUrl);
+            if (Array.isArray(commits) && commits.length > 0) commit = commits[0];
+        } catch (_) {}
+
+        const meta = [];
+        meta.push(`<div><span class="small">path:</span> <span class="path">${escapeHtml(displayPath)}</span></div>`);
+        meta.push(`<div><span class="small">repo sha:</span> ${escapeHtml(shortSha(fileData.sha || ""))}</div>`);
+
+        if (commit) {
+            meta.push(`<div><span class="small">commit:</span> ${escapeHtml(shortSha(commit.sha || ""))}</div>`);
+            const msg = commit.commit && commit.commit.message ? commit.commit.message.split("\n")[0] : "";
+            if (msg) meta.push(`<div><span class="small">message:</span> ${escapeHtml(msg)}</div>`);
+            const date = commit.commit && commit.commit.committer && commit.commit.committer.date ? fmtDate(commit.commit.committer.date) : "";
+            if (date) meta.push(`<div><span class="small">date:</span> ${escapeHtml(date)}</div>`);
+        }
+
+        document.getElementById("fileMeta").innerHTML = meta.join("");
+
+        document.getElementById("fileContent").textContent = text;
+    } catch (e) {
+        document.getElementById("fileContent").textContent = `Error: ${e.message}`;
+    }
+}
+
+function showError(msg) {
+    setActivePanel("root");
+    document.getElementById("rootSub").textContent = msg;
+    document.getElementById("repoTable").innerHTML = `<tr><td class="error">${escapeHtml(msg)}</td><td></td></tr>`;
+}
+
+async function route() {
+    const hash = location.hash.replace(/^#/, "");
+    const parts = hash.split("/").filter(Boolean);
+
+    if (parts.length === 0) {
+        renderRoot();
+        return;
+    }
+
+    if (parts[0] === "repo") {
+        const repoName = decodePathPart(parts[1] || "");
+        const innerPath = parts.slice(2).map(decodePathPart).join("/");
+        await renderRepo(repoName, innerPath);
+        return;
+    }
+
+    if (parts[0] === "file") {
+        const repoName = decodePathPart(parts[1] || "");
+        const filePath = parts.slice(2).map(decodePathPart).join("/");
+        await renderFile(repoName, filePath);
+        return;
+    }
+
+    renderRoot();
+}
+
+window.addEventListener("hashchange", route);
+
+(async function init() {
+    try {
+        await loadAllRepos();
+        await route();
+    } catch (e) {
+        setActivePanel("root");
+        document.getElementById("rootSub").textContent = "Failed to load repos.";
+        document.getElementById("repoTable").innerHTML = `<tr><td class="error">Error: ${escapeHtml(e.message)}</td><td></td></tr>`;
+    }
+})();
 </script>
 
 </body>
