@@ -9,10 +9,17 @@
         --bg: #0d0d0d;
         --bg2: #141414;
         --bg3: #1f1f1f;
+        --panel: #101010;
         --text: #e0e0e0;
         --muted: #888;
         --link: #8ab4f8;
         --border: #222;
+        --danger: #ff9b9b;
+        --accent: #6fb1ff;
+    }
+
+    * {
+        box-sizing: border-box;
     }
 
     body {
@@ -38,7 +45,7 @@
         display: flex;
         gap: 12px;
         align-items: center;
-        margin-bottom: 18px;
+        margin-bottom: 14px;
         flex-wrap: wrap;
     }
 
@@ -111,7 +118,7 @@
     }
 
     .error {
-        color: #ff9b9b;
+        color: var(--danger);
     }
 
     .file-meta {
@@ -143,9 +150,212 @@
         font-size: 12px;
         color: var(--muted);
     }
+
+    .notfound-wrap {
+        min-height: 70vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .notfound-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .notfound-code {
+        font-size: clamp(90px, 18vw, 180px);
+        line-height: 1;
+        font-weight: 700;
+        color: #ff4d4d;
+        letter-spacing: 2px;
+        text-shadow: 0 0 18px rgba(255, 77, 77, 0.14);
+    }
+
+    .notfound-text {
+        font-size: 14px;
+        color: var(--muted);
+    }
+
+    .commit-strip {
+        margin: 8px 0 16px 0;
+        padding: 12px 14px;
+        background: #0a0a0a;
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--accent);
+        border-radius: 10px;
+        display: none;
+    }
+
+    .commit-strip.active {
+        display: block;
+    }
+
+    .commit-strip .label {
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 6px;
+    }
+
+    .commit-strip .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 16px;
+        align-items: center;
+        font-size: 13px;
+        color: var(--text);
+    }
+
+    .commit-strip .piece {
+        color: var(--muted);
+    }
+
+    .commit-strip .sha {
+        color: var(--link);
+        word-break: break-all;
+    }
+
+    .menu-btn {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        width: 42px;
+        height: 42px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #101010;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 1000;
+        box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+
+    .menu-btn.active {
+        display: flex;
+    }
+
+    .menu-icon {
+        width: 18px;
+        height: 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .menu-icon span {
+        display: block;
+        height: 2px;
+        width: 100%;
+        background: var(--text);
+        border-radius: 2px;
+    }
+
+    .menu-panel {
+        position: fixed;
+        top: 66px;
+        right: 16px;
+        width: 260px;
+        background: #0f0f0f;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 10px;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 18px 40px rgba(0,0,0,.35);
+    }
+
+    .menu-panel.open {
+        display: block;
+    }
+
+    .menu-item {
+        width: 100%;
+        background: transparent;
+        color: var(--text);
+        border: 0;
+        text-align: left;
+        padding: 11px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+        font: inherit;
+    }
+
+    .menu-item:hover {
+        background: var(--bg2);
+    }
+
+    .menu-item.active {
+        color: var(--link);
+    }
+
+    .menu-subtitle {
+        color: var(--muted);
+        font-size: 11px;
+        padding: 2px 12px 8px 12px;
+    }
+
+    .submenu {
+        margin: 4px 0 8px 0;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: #0b0b0b;
+        display: none;
+    }
+
+    .submenu.open {
+        display: block;
+    }
+
+    .submenu button {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        text-align: left;
+        padding: 9px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        font: inherit;
+    }
+
+    .submenu button:hover {
+        background: var(--bg2);
+    }
+
+    .submenu button.active {
+        color: var(--link);
+    }
 </style>
 </head>
 <body>
+
+<div id="menuButton" class="menu-btn" title="Options" aria-label="Options">
+    <div class="menu-icon" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+</div>
+
+<div id="menuPanel" class="menu-panel" aria-hidden="true">
+    <button id="menuSortToggle" class="menu-item">Sort by…</button>
+    <div class="menu-subtitle">Size / Name / Date</div>
+    <div id="sortSubmenu" class="submenu">
+        <button data-sort="name">Name</button>
+        <button data-sort="size">Size</button>
+        <button data-sort="date">Date</button>
+    </div>
+
+    <button id="menuCommitToggle" class="menu-item">Show latest commit</button>
+    <button id="menuDownload" class="menu-item">Download this repo…</button>
+</div>
 
 <div id="rootView" class="panel active">
     <h1 id="rootTitle">Index of /ZenithOS/</h1>
@@ -159,6 +369,7 @@
         <div class="crumbs" id="repoCrumbs"></div>
         <div class="hint" id="repoHint"></div>
     </div>
+    <div id="repoCommitStrip" class="commit-strip"></div>
     <table id="contentTable"></table>
 </div>
 
@@ -170,8 +381,18 @@
         </div>
         <div class="hint" id="fileHint"></div>
     </div>
+    <div id="fileCommitStrip" class="commit-strip"></div>
     <div class="file-meta" id="fileMeta"></div>
     <pre id="fileContent">Loading…</pre>
+</div>
+
+<div id="notFoundView" class="panel">
+    <div class="notfound-wrap">
+        <div class="notfound-box">
+            <div class="notfound-code">404</div>
+            <div class="notfound-text" id="notFoundText">Repo not found! Try again..</div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -185,18 +406,26 @@ const allowedPrefixes = [
     "system","tools"
 ];
 
-// Optional, if you ever want to raise the API rate limit:
-// const GITHUB_TOKEN = "PUT_TOKEN_HERE";
-// and add Authorization header below.
 const GITHUB_TOKEN = "";
 
 let allRepos = [];
 let repoMap = new Map();
 
+let currentRepoName = "";
+let currentInnerPath = "";
+let currentFilePath = "";
+
+let sortMode = "name";
+let showLatestCommit = false;
+
+let latestCommitCache = new Map();
+let itemCommitCache = new Map();
+
+let menuOpen = false;
+let sortMenuOpen = false;
+
 function headers() {
-    const h = {
-        "Accept": "application/vnd.github+json"
-    };
+    const h = { "Accept": "application/vnd.github+json" };
     if (GITHUB_TOKEN) h["Authorization"] = "Bearer " + GITHUB_TOKEN;
     return h;
 }
@@ -223,13 +452,23 @@ function shortSha(sha) {
 
 function fmtDate(dateStr) {
     if (!dateStr) return "";
-    return new Date(dateStr).toISOString().replace("T", " ").split(".")[0];
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toISOString().replace("T", " ").split(".")[0];
 }
 
 function setActivePanel(which) {
-    document.getElementById("rootView").classList.toggle("active", which === "root");
-    document.getElementById("repoView").classList.toggle("active", which === "repo");
-    document.getElementById("fileView").classList.toggle("active", which === "file");
+    const panels = ["rootView", "repoView", "fileView", "notFoundView"];
+    for (const id of panels) {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle("active", id === `${which}View`);
+    }
+
+    const showMenu = which === "repo" || which === "file";
+    const menuBtn = document.getElementById("menuButton");
+    if (menuBtn) menuBtn.classList.toggle("active", showMenu);
+
+    if (!showMenu) closeMenu();
 }
 
 function decodePathPart(p) {
@@ -267,6 +506,7 @@ async function loadAllRepos() {
         collected.push(...batch);
         if (batch.length < 100) break;
     }
+
     allRepos = collected.filter(r => repoMatchesRootFilter(r.name));
     allRepos.sort((a, b) => virtualRepoPath(a.name).localeCompare(virtualRepoPath(b.name)));
     repoMap = new Map(allRepos.map(r => [r.name, r]));
@@ -276,21 +516,223 @@ function findRepoByName(name) {
     return repoMap.get(name) || null;
 }
 
-function findRepoByVirtualPath(pathParts) {
-    const path = pathParts.join("/");
-    return allRepos.find(r => virtualRepoPath(r.name) === path) || null;
+function cacheKey(repoName, path) {
+    return `${repoName}::${path || ""}`;
 }
 
-function renderRoot() {
+async function getLatestCommitForPath(repo, path = "") {
+    const key = cacheKey(repo.name, path);
+    if (latestCommitCache.has(key)) return latestCommitCache.get(key);
+
+    const promise = (async () => {
+        try {
+            const suffix = path ? `&path=${encodeURIComponent(path)}` : "";
+            const url = `https://api.github.com/repos/${OWNER}/${repo.name}/commits?per_page=1${suffix}`;
+            const commits = await fetchJson(url);
+            if (Array.isArray(commits) && commits.length > 0) return commits[0];
+        } catch (_) {}
+        return null;
+    })();
+
+    latestCommitCache.set(key, promise);
+    return promise;
+}
+
+async function getItemCommitDate(repo, path) {
+    const key = cacheKey(repo.name, path);
+    if (itemCommitCache.has(key)) return itemCommitCache.get(key);
+
+    const promise = (async () => {
+        try {
+            const url = `https://api.github.com/repos/${OWNER}/${repo.name}/commits?per_page=1&path=${encodeURIComponent(path)}`;
+            const commits = await fetchJson(url);
+            if (Array.isArray(commits) && commits.length > 0) {
+                const c = commits[0];
+                return c?.commit?.committer?.date || c?.commit?.author?.date || "";
+            }
+        } catch (_) {}
+        return "";
+    })();
+
+    itemCommitCache.set(key, promise);
+    return promise;
+}
+
+function getRepoDownloadUrl(repo) {
+    return repo.zipball_url || `https://github.com/${OWNER}/${repo.name}/archive/refs/heads/${repo.default_branch || "main"}.zip`;
+}
+
+function renderNotFound(message = "Repo not found! Try again..") {
+    document.getElementById("notFoundText").textContent = message;
+    setActivePanel("notFound");
+}
+
+function openMenu() {
+    menuOpen = true;
+    const panel = document.getElementById("menuPanel");
+    if (panel) panel.classList.add("open");
+    updateMenuTexts();
+}
+
+function closeMenu() {
+    menuOpen = false;
+    const panel = document.getElementById("menuPanel");
+    if (panel) panel.classList.remove("open");
+    closeSortMenu();
+}
+
+function toggleMenu() {
+    if (menuOpen) closeMenu();
+    else openMenu();
+}
+
+function openSortMenu() {
+    sortMenuOpen = true;
+    const el = document.getElementById("sortSubmenu");
+    if (el) el.classList.add("open");
+    updateSortButtons();
+}
+
+function closeSortMenu() {
+    sortMenuOpen = false;
+    const el = document.getElementById("sortSubmenu");
+    if (el) el.classList.remove("open");
+}
+
+function toggleSortMenu() {
+    if (sortMenuOpen) closeSortMenu();
+    else openSortMenu();
+}
+
+function updateMenuTexts() {
+    const sortToggle = document.getElementById("menuSortToggle");
+    const commitToggle = document.getElementById("menuCommitToggle");
+    const downloadBtn = document.getElementById("menuDownload");
+
+    if (sortToggle) sortToggle.textContent = `Sort by… (${sortMode})`;
+    if (commitToggle) commitToggle.textContent = showLatestCommit ? "Hide latest commit" : "Show latest commit";
+    if (downloadBtn) downloadBtn.textContent = "Download this repo…";
+
+    updateSortButtons();
+}
+
+function updateSortButtons() {
+    document.querySelectorAll("#sortSubmenu button").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.sort === sortMode);
+    });
+}
+
+function setSortMode(mode) {
+    sortMode = mode;
+    updateMenuTexts();
+    if (currentRepoName) {
+        if (currentFilePath) {
+            renderFile(currentRepoName, currentFilePath);
+        } else {
+            renderRepo(currentRepoName, currentInnerPath);
+        }
+    }
+}
+
+function toggleLatestCommit() {
+    showLatestCommit = !showLatestCommit;
+    updateMenuTexts();
+    if (currentRepoName) {
+        if (currentFilePath) {
+            renderFile(currentRepoName, currentFilePath);
+        } else {
+            renderRepo(currentRepoName, currentInnerPath);
+        }
+    }
+}
+
+function downloadCurrentRepo() {
+    const repo = findRepoByName(currentRepoName);
+    if (!repo) return;
+    window.location.href = getRepoDownloadUrl(repo);
+}
+
+async function enrichItemsForDateSort(repo, items, basePath) {
+    if (sortMode !== "date") return items;
+
+    await Promise.all(items.map(async item => {
+        const fullPath = basePath ? `${basePath}/${item.name}` : item.name;
+        item._sortDate = await getItemCommitDate(repo, fullPath);
+    }));
+
+    return items;
+}
+
+function compareItems(a, b) {
+    if (sortMode === "size") {
+        const sizeA = a.type === "dir" ? -1 : (a.size || 0);
+        const sizeB = b.type === "dir" ? -1 : (b.size || 0);
+        if (sizeA !== sizeB) return sizeB - sizeA;
+        return a.name.localeCompare(b.name);
+    }
+
+    if (sortMode === "date") {
+        const dateA = a._sortDate ? new Date(a._sortDate).getTime() : 0;
+        const dateB = b._sortDate ? new Date(b._sortDate).getTime() : 0;
+        if (dateA !== dateB) return dateB - dateA;
+        return a.name.localeCompare(b.name);
+    }
+
+    return a.name.localeCompare(b.name);
+}
+
+function itemRightLabel(item) {
+    if (item.type === "dir") return "dir";
+
+    if (sortMode === "date" && item._sortDate) {
+        return fmtDate(item._sortDate) || "file";
+    }
+
+    if (item.size != null) return `${item.size} B`;
+    return "file";
+}
+
+function renderCommitStrip(containerId, commit, pathLabel) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+
+    if (!showLatestCommit || !commit) {
+        el.classList.remove("active");
+        el.innerHTML = "";
+        return;
+    }
+
+    const committerName =
+        commit?.commit?.committer?.name ||
+        commit?.commit?.author?.name ||
+        commit?.committer?.login ||
+        "Unknown";
+
+    const message = commit?.commit?.message ? commit.commit.message.split("\n")[0] : "";
+    const sha = commit?.sha || "";
+
+    el.innerHTML = `
+        <div class="label">Latest commit${pathLabel ? ` for ${escapeHtml(pathLabel)}` : ""}</div>
+        <div class="row">
+            <div><span class="piece">committer:</span> ${escapeHtml(committerName)}</div>
+            <div><span class="piece">message:</span> ${escapeHtml(message || "—")}</div>
+            <div><span class="piece">sha:</span> <span class="sha">${escapeHtml(sha || "—")}</span></div>
+        </div>
+    `;
+    el.classList.add("active");
+}
+
+async function renderRoot() {
     setActivePanel("root");
 
     const table = document.getElementById("repoTable");
     const sub = document.getElementById("rootSub");
     const title = document.getElementById("rootTitle");
 
+    if (!table || !sub || !title) return;
+
     title.textContent = "Index of /ZenithOS/";
     sub.textContent = `Showing ${allRepos.length} filtered repos`;
-
     table.innerHTML = "";
 
     allRepos.forEach(repo => {
@@ -323,21 +765,33 @@ function renderRoot() {
 async function renderRepo(repoName, innerPath = "") {
     const repo = findRepoByName(repoName);
     if (!repo) {
-        showError("Repo not found.");
+        renderNotFound();
         return;
     }
 
+    currentRepoName = repoName;
+    currentInnerPath = innerPath;
+    currentFilePath = "";
+
     setActivePanel("repo");
+    updateMenuTexts();
 
     const title = document.getElementById("repoTitle");
     const crumbs = document.getElementById("repoCrumbs");
     const hint = document.getElementById("repoHint");
     const table = document.getElementById("contentTable");
 
+    if (!title || !crumbs || !hint || !table) return;
+
     const basePath = virtualRepoPath(repo.name);
     const fullPath = innerPath ? `${basePath}/${innerPath}` : basePath;
 
     title.textContent = `Index of /ZenithOS/${fullPath}/`;
+    hint.textContent = sortMode === "name"
+        ? "sorted by name"
+        : sortMode === "size"
+            ? "sorted by size"
+            : "sorted by date";
 
     crumbs.innerHTML = "";
     const home = document.createElement("a");
@@ -346,9 +800,7 @@ async function renderRepo(repoName, innerPath = "") {
     crumbs.appendChild(home);
 
     const parts = basePath.split("/").filter(Boolean);
-    let acc = "";
     for (const part of parts) {
-        acc += (acc ? "/" : "") + part;
         const sep = document.createElement("span");
         sep.textContent = " / ";
         crumbs.appendChild(sep);
@@ -376,94 +828,118 @@ async function renderRepo(repoName, innerPath = "") {
     }
 
     table.innerHTML = `<tr><td class="loading">Loading…</td><td></td></tr>`;
+    renderCommitStrip("repoCommitStrip", null, fullPath);
 
     try {
         const apiPath = innerPath ? `/${innerPath.split("/").map(encodeURIComponent).join("/")}` : "";
         const url = `https://api.github.com/repos/${OWNER}/${repo.name}/contents${apiPath}`;
         const data = await fetchJson(url);
 
-        const items = Array.isArray(data) ? data : [data];
-        items.sort((a, b) => {
-            if (a.type !== b.type) return a.type === "dir" ? -1 : 1;
-            return a.name.localeCompare(b.name);
-        });
+        if (!Array.isArray(data) && data && data.type && data.type !== "dir") {
+            location.hash = `#/file/${encodePathPart(repo.name)}/${encodePathPart(innerPath)}`;
+            return;
+        }
+
+        let items = Array.isArray(data) ? data : [data];
+        items = items.filter(Boolean);
+
+        if (sortMode === "date") {
+            await enrichItemsForDateSort(repo, items, innerPath);
+        }
+
+        items.sort(compareItems);
 
         table.innerHTML = "";
 
         if (items.length === 0) {
             table.innerHTML = `<tr><td class="small">Empty.</td><td></td></tr>`;
-            return;
+        } else {
+            items.forEach(item => {
+                const tr = document.createElement("tr");
+                const nameTd = document.createElement("td");
+                const dateTd = document.createElement("td");
+
+                nameTd.className = "name";
+                dateTd.className = "date";
+
+                const a = document.createElement("a");
+                const nextPath = innerPath ? `${innerPath}/${item.name}` : item.name;
+
+                if (item.type === "dir") {
+                    a.href = "#/repo/" + encodePathPart(repo.name) + "/" + encodePathPart(nextPath);
+                    a.textContent = item.name + "/";
+                    tr.onclick = () => location.hash = "#/repo/" + encodePathPart(repo.name) + "/" + encodePathPart(nextPath);
+                } else {
+                    a.href = "#/file/" + encodePathPart(repo.name) + "/" + encodePathPart(nextPath);
+                    a.textContent = item.name;
+                    tr.onclick = () => location.hash = "#/file/" + encodePathPart(repo.name) + "/" + encodePathPart(nextPath);
+                }
+
+                nameTd.appendChild(a);
+                dateTd.textContent = itemRightLabel(item);
+
+                tr.appendChild(nameTd);
+                tr.appendChild(dateTd);
+                table.appendChild(tr);
+            });
         }
 
-        items.forEach(item => {
-            const tr = document.createElement("tr");
-            const nameTd = document.createElement("td");
-            const dateTd = document.createElement("td");
-
-            nameTd.className = "name";
-            dateTd.className = "date";
-
-            const a = document.createElement("a");
-            const nextPath = innerPath ? `${innerPath}/${item.name}` : item.name;
-
-            if (item.type === "dir") {
-                a.href = "#/repo/" + encodePathPart(repo.name) + "/" + encodePathPart(nextPath);
-                a.textContent = item.name + "/";
-                tr.onclick = () => location.hash = "#/repo/" + encodePathPart(repo.name) + "/" + encodePathPart(nextPath);
-                dateTd.textContent = "dir";
-            } else {
-                a.href = "#/file/" + encodePathPart(repo.name) + "/" + encodePathPart(nextPath);
-                a.textContent = item.name;
-                tr.onclick = () => location.hash = "#/file/" + encodePathPart(repo.name) + "/" + encodePathPart(nextPath);
-                dateTd.textContent = item.size != null ? `${item.size} B` : "file";
-            }
-
-            nameTd.appendChild(a);
-            tr.appendChild(nameTd);
-            tr.appendChild(dateTd);
-            table.appendChild(tr);
-        });
+        const latestCommit = await getLatestCommitForPath(repo, innerPath);
+        renderCommitStrip("repoCommitStrip", latestCommit, fullPath);
     } catch (e) {
         table.innerHTML = `<tr><td class="error">Error: ${escapeHtml(e.message)}</td><td></td></tr>`;
+        renderCommitStrip("repoCommitStrip", null, fullPath);
     }
 }
 
 async function renderFile(repoName, filePath) {
     const repo = findRepoByName(repoName);
     if (!repo) {
-        showError("Repo not found.");
+        renderNotFound();
         return;
     }
 
+    currentRepoName = repoName;
+    currentInnerPath = "";
+    currentFilePath = filePath;
+
     setActivePanel("file");
+    updateMenuTexts();
 
     const basePath = virtualRepoPath(repo.name);
     const displayPath = `${basePath}/${filePath}`;
 
-    document.getElementById("fileTitle").textContent = `Index of /ZenithOS/${displayPath}`;
-    document.getElementById("fileBack").onclick = () => {
+    const fileTitle = document.getElementById("fileTitle");
+    const fileBack = document.getElementById("fileBack");
+    const fileHint = document.getElementById("fileHint");
+    const fileMeta = document.getElementById("fileMeta");
+    const fileContent = document.getElementById("fileContent");
+
+    if (!fileTitle || !fileBack || !fileHint || !fileMeta || !fileContent) return;
+
+    fileTitle.textContent = `Index of /ZenithOS/${displayPath}`;
+    fileBack.onclick = () => {
         const parent = filePath.split("/").slice(0, -1).join("/");
         location.hash = parent
             ? `#/repo/${encodePathPart(repo.name)}/${encodePathPart(parent)}`
             : `#/repo/${encodePathPart(repo.name)}`;
     };
 
-    document.getElementById("fileHint").textContent = "file viewer";
-    document.getElementById("fileMeta").innerHTML = "";
-    document.getElementById("fileContent").textContent = "Loading…";
+    fileHint.textContent = "file viewer";
+    fileMeta.innerHTML = "";
+    fileContent.textContent = "Loading…";
+    renderCommitStrip("fileCommitStrip", null, displayPath);
 
     try {
         const apiUrl = `https://api.github.com/repos/${OWNER}/${repo.name}/contents/${filePath.split("/").map(encodeURIComponent).join("/")}`;
         const fileData = await fetchJson(apiUrl);
 
         let text = "";
-        let rawText = null;
 
         if (fileData && fileData.encoding === "base64" && typeof fileData.content === "string") {
             text = atob(fileData.content.replace(/\n/g, ""));
         } else if (fileData && fileData.download_url) {
-            rawText = await fetchText(fileData.download_url);
-            text = rawText;
+            text = await fetchText(fileData.download_url);
         } else {
             text = "[binary or unavailable file]";
         }
@@ -487,18 +963,15 @@ async function renderFile(repoName, filePath) {
             if (date) meta.push(`<div><span class="small">date:</span> ${escapeHtml(date)}</div>`);
         }
 
-        document.getElementById("fileMeta").innerHTML = meta.join("");
+        fileMeta.innerHTML = meta.join("");
+        fileContent.textContent = text;
 
-        document.getElementById("fileContent").textContent = text;
+        const latestCommit = await getLatestCommitForPath(repo, filePath);
+        renderCommitStrip("fileCommitStrip", latestCommit, displayPath);
     } catch (e) {
-        document.getElementById("fileContent").textContent = `Error: ${e.message}`;
+        fileContent.textContent = `Error: ${e.message}`;
+        renderCommitStrip("fileCommitStrip", null, displayPath);
     }
-}
-
-function showError(msg) {
-    setActivePanel("root");
-    document.getElementById("rootSub").textContent = msg;
-    document.getElementById("repoTable").innerHTML = `<tr><td class="error">${escapeHtml(msg)}</td><td></td></tr>`;
 }
 
 async function route() {
@@ -506,7 +979,7 @@ async function route() {
     const parts = hash.split("/").filter(Boolean);
 
     if (parts.length === 0) {
-        renderRoot();
+        await renderRoot();
         return;
     }
 
@@ -524,19 +997,58 @@ async function route() {
         return;
     }
 
-    renderRoot();
+    await renderRoot();
 }
 
 window.addEventListener("hashchange", route);
 
+document.getElementById("menuButton").addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleMenu();
+});
+
+document.getElementById("menuSortToggle").addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleSortMenu();
+});
+
+document.getElementById("menuCommitToggle").addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleLatestCommit();
+});
+
+document.getElementById("menuDownload").addEventListener("click", (e) => {
+    e.stopPropagation();
+    downloadCurrentRepo();
+});
+
+document.querySelectorAll("#sortSubmenu button").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setSortMode(btn.dataset.sort || "name");
+    });
+});
+
+document.addEventListener("click", (e) => {
+    const menuPanel = document.getElementById("menuPanel");
+    const menuButton = document.getElementById("menuButton");
+    if (!menuPanel || !menuButton) return;
+
+    const clickedInside = menuPanel.contains(e.target) || menuButton.contains(e.target);
+    if (!clickedInside) closeMenu();
+});
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeMenu();
+});
+
 (async function init() {
     try {
         await loadAllRepos();
+        updateMenuTexts();
         await route();
     } catch (e) {
-        setActivePanel("root");
-        document.getElementById("rootSub").textContent = "Failed to load repos.";
-        document.getElementById("repoTable").innerHTML = `<tr><td class="error">Error: ${escapeHtml(e.message)}</td><td></td></tr>`;
+        renderNotFound("Repo not found! Try again..");
     }
 })();
 </script>
