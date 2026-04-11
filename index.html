@@ -18,8 +18,6 @@
         --danger: #ff9b9b;
         --accent: #6fb1ff;
     }
-    
-    
 
     * {
         box-sizing: border-box;
@@ -335,6 +333,46 @@
     .submenu button.active {
         color: var(--link);
     }
+
+    .code-view {
+        white-space: pre;
+    }
+
+    .tok-comment {
+        color: #6a9955;
+    }
+
+    .tok-string {
+        color: #ce9178;
+    }
+
+    .tok-number {
+        color: #b5cea8;
+    }
+
+    .tok-keyword {
+        color: #569cd6;
+    }
+
+    .tok-type {
+        color: #4ec9b0;
+    }
+
+    .tok-attr {
+        color: #9cdcfe;
+    }
+
+    .tok-tag {
+        color: #c586c0;
+    }
+
+    .tok-punct {
+        color: #d4d4d4;
+    }
+
+    .tok-plain {
+        color: inherit;
+    }
 </style>
 </head>
 <body>
@@ -384,7 +422,7 @@
         <div class="hint" id="fileHint"></div>
     </div>
     <div class="file-meta" id="fileMeta"></div>
-    <pre id="fileContent">Loading…</pre>
+    <pre id="fileContent" class="code-view">Loading…</pre>
 </div>
 
 <div id="notFoundView" class="panel">
@@ -478,6 +516,156 @@ function humanizeAgo(dateStr) {
     if (diff < month) return `${pluralize(Math.floor(diff / day), "day")} ago`;
     if (diff < year) return `${pluralize(Math.floor(diff / month), "month")} ago`;
     return `${pluralize(Math.floor(diff / year), "year")} ago`;
+}
+
+function decodeBase64Utf8(str) {
+    const bytes = Uint8Array.from(atob(str), c => c.charCodeAt(0));
+    return new TextDecoder("utf-8").decode(bytes);
+}
+
+function escapeAndPreserveSpaces(str) {
+    return escapeHtml(str).replaceAll(" ", "&nbsp;");
+}
+
+function tokenSpan(cls, value) {
+    return `<span class="${cls}">${value}</span>`;
+}
+
+function classifyLanguage(fileName, fileData) {
+    const lower = (fileName || "").toLowerCase();
+    if (lower.endsWith(".xml") || lower.endsWith(".xsd") || lower.endsWith(".xsl") || lower.endsWith(".html") || lower.endsWith(".htm")) return "xml";
+    if (lower.endsWith(".java")) return "java";
+    if (lower.endsWith(".c") || lower.endsWith(".h") || lower.endsWith(".cc") || lower.endsWith(".cpp") || lower.endsWith(".cxx") || lower.endsWith(".hpp") || lower.endsWith(".hh")) return "cpp";
+    const mime = (fileData && (fileData.type || fileData.mime_type || "")).toLowerCase();
+    if (mime.includes("xml")) return "xml";
+    if (mime.includes("java")) return "java";
+    if (mime.includes("c++") || mime.includes("cpp") || mime.includes("c-source") || mime.includes("c-header")) return "cpp";
+    return "";
+}
+
+function highlightXml(code) {
+    const lines = code.split(/\r?\n/);
+    return lines.map(line => {
+        let out = "";
+        let i = 0;
+        while (i < line.length) {
+            const rest = line.slice(i);
+            if (rest.startsWith("<!--")) {
+                out += tokenSpan("tok-comment", escapeAndPreserveSpaces(rest));
+                break;
+            }
+            if (rest.startsWith("<![CDATA[")) {
+                const end = rest.indexOf("]]>");
+                const chunk = end >= 0 ? rest.slice(0, end + 3) : rest;
+                out += tokenSpan("tok-string", escapeAndPreserveSpaces(chunk));
+                i += chunk.length;
+                continue;
+            }
+            if (rest[0] === "<") {
+                const end = rest.indexOf(">");
+                const chunk = end >= 0 ? rest.slice(0, end + 1) : rest;
+                const escaped = escapeHtml(chunk)
+                    .replace(/(&lt;\/?)([A-Za-z_][\w:.-]*)/g, '$1<span class="tok-tag">$2</span>')
+                    .replace(/([A-Za-z_:][\w:.-]*)(=)/g, '<span class="tok-attr">$1</span>$2')
+                    .replace(/(&quot;.*?&quot;|'.*?')/g, '<span class="tok-string">$1</span>');
+                out += escaped;
+                i += chunk.length;
+                continue;
+            }
+            const next = rest.indexOf("<");
+            const chunk = next >= 0 ? rest.slice(0, next) : rest;
+            out += escapeHtml(chunk);
+            i += chunk.length;
+        }
+        return out;
+    }).join("\n");
+}
+
+function highlightJavaLike(code) {
+    const keywords = new Set([
+        "abstract","assert","boolean","break","byte","case","catch","char","class","const","continue","default","do","double","else","enum","extends","final","finally","float","for","goto","if","implements","import","instanceof","int","interface","long","native","new","package","private","protected","public","return","short","static","strictfp","super","switch","synchronized","this","throw","throws","transient","try","void","volatile","while","var","record","sealed","non-sealed","permits"
+    ]);
+    const types = new Set(["String","Integer","Long","Double","Float","Boolean","Character","Object","List","Map","Set","HashMap","ArrayList","System","Thread","Exception","Throwable","Runnable","StringBuilder","StringBuffer"]);
+    const lines = code.split(/\r?\n/);
+    return lines.map(line => {
+        let out = "";
+        let i = 0;
+        let inBlockComment = false;
+        while (i < line.length) {
+            const rest = line.slice(i);
+            if (inBlockComment) {
+                const end = rest.indexOf("*/");
+                if (end >= 0) {
+                    out += tokenSpan("tok-comment", escapeHtml(rest.slice(0, end + 2)));
+                    i += end + 2;
+                    inBlockComment = false;
+                } else {
+                    out += tokenSpan("tok-comment", escapeHtml(rest));
+                    break;
+                }
+                continue;
+            }
+            if (rest.startsWith("/*")) {
+                const end = rest.indexOf("*/", 2);
+                if (end >= 0) {
+                    out += tokenSpan("tok-comment", escapeHtml(rest.slice(0, end + 2)));
+                    i += end + 2;
+                } else {
+                    out += tokenSpan("tok-comment", escapeHtml(rest));
+                    inBlockComment = true;
+                    break;
+                }
+                continue;
+            }
+            if (rest.startsWith("//")) {
+                out += tokenSpan("tok-comment", escapeHtml(rest));
+                break;
+            }
+            const ch = rest[0];
+            if (ch === '"' || ch === "'") {
+                let j = 1;
+                while (j < rest.length) {
+                    if (rest[j] === "\\" && j + 1 < rest.length) {
+                        j += 2;
+                        continue;
+                    }
+                    if (rest[j] === ch) {
+                        j++;
+                        break;
+                    }
+                    j++;
+                }
+                out += tokenSpan("tok-string", escapeHtml(rest.slice(0, j)));
+                i += j;
+                continue;
+            }
+            const numMatch = rest.match(/^(0x[0-9a-fA-F]+|\d+\.\d+|\d+[uUlLfF]?)/);
+            if (numMatch) {
+                out += tokenSpan("tok-number", escapeHtml(numMatch[0]));
+                i += numMatch[0].length;
+                continue;
+            }
+            const idMatch = rest.match(/^[_$A-Za-z][_$A-Za-z0-9]*/);
+            if (idMatch) {
+                const word = idMatch[0];
+                if (keywords.has(word)) out += tokenSpan("tok-keyword", escapeHtml(word));
+                else if (types.has(word) || /^[A-Z][A-Za-z0-9_]*$/.test(word)) out += tokenSpan("tok-type", escapeHtml(word));
+                else out += escapeHtml(word);
+                i += word.length;
+                continue;
+            }
+            out += tokenSpan("tok-punct", escapeHtml(ch));
+            i += 1;
+        }
+        return out;
+    }).join("\n");
+}
+
+function highlightCode(code, language) {
+    const safe = String(code).replace(/\u0000/g, "");
+    if (language === "xml") return highlightXml(safe);
+    if (language === "java" || language === "cpp") return highlightJavaLike(safe);
+    return escapeHtml(safe);
 }
 
 function setActivePanel(which) {
@@ -976,12 +1164,14 @@ async function renderFile(repoName, filePath) {
         let text = "";
 
         if (fileData && fileData.encoding === "base64" && typeof fileData.content === "string") {
-            text = atob(fileData.content.replace(/\n/g, ""));
+            text = decodeBase64Utf8(fileData.content.replace(/\n/g, ""));
         } else if (fileData && fileData.download_url) {
             text = await fetchText(fileData.download_url);
         } else {
             text = "[binary or unavailable file]";
         }
+
+        const language = classifyLanguage(fileData?.name || filePath, fileData);
 
         let commit = null;
         try {
@@ -1003,7 +1193,7 @@ async function renderFile(repoName, filePath) {
         }
 
         fileMeta.innerHTML = meta.join("");
-        fileContent.textContent = text;
+        fileContent.innerHTML = highlightCode(text, language);
 
     } catch (e) {
         fileContent.textContent = `Error: ${e.message}`;
