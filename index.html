@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Index of /ZenithOS/</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap" rel="stylesheet">
 <style>
     :root {
         --bg: #0d0d0d;
@@ -17,6 +18,8 @@
         --danger: #ff9b9b;
         --accent: #6fb1ff;
     }
+    
+    
 
     * {
         box-sizing: border-box;
@@ -25,7 +28,7 @@
     body {
         background: var(--bg);
         color: var(--text);
-        font-family: monospace;
+        font-family: 'JetBrains Mono', monospace;
         margin: 40px;
     }
 
@@ -353,13 +356,13 @@
         <button data-sort="date">Date</button>
     </div>
 
-    <button id="menuCommitToggle" class="menu-item">Show latest commit</button>
     <button id="menuDownload" class="menu-item">Download this repo…</button>
 </div>
 
 <div id="rootView" class="panel active">
     <h1 id="rootTitle">Index of /ZenithOS/</h1>
     <div class="sub" id="rootSub">Loading repos…</div>
+    <div id="rootCommitStrip" class="commit-strip"></div>
     <table id="repoTable"></table>
 </div>
 
@@ -369,7 +372,6 @@
         <div class="crumbs" id="repoCrumbs"></div>
         <div class="hint" id="repoHint"></div>
     </div>
-    <div id="repoCommitStrip" class="commit-strip"></div>
     <table id="contentTable"></table>
 </div>
 
@@ -381,7 +383,6 @@
         </div>
         <div class="hint" id="fileHint"></div>
     </div>
-    <div id="fileCommitStrip" class="commit-strip"></div>
     <div class="file-meta" id="fileMeta"></div>
     <pre id="fileContent">Loading…</pre>
 </div>
@@ -416,8 +417,6 @@ let currentInnerPath = "";
 let currentFilePath = "";
 
 let sortMode = "name";
-let showLatestCommit = false;
-
 let latestCommitCache = new Map();
 let itemCommitCache = new Map();
 
@@ -455,6 +454,30 @@ function fmtDate(dateStr) {
     const d = new Date(dateStr);
     if (Number.isNaN(d.getTime())) return "";
     return d.toISOString().replace("T", " ").split(".")[0];
+}
+
+function pluralize(value, unit) {
+    return `${value} ${unit}${value === 1 ? "" : "s"}`;
+}
+
+function humanizeAgo(dateStr) {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const diff = Date.now() - date.getTime();
+    if (!Number.isFinite(diff) || diff < 0) return "";
+
+    const minute = 60 * 1000;
+    const hour = 60 * minute;
+    const day = 24 * hour;
+    const month = 30 * day;
+    const year = 365 * day;
+
+    if (diff < minute) return "just now";
+    if (diff < hour) return `${pluralize(Math.floor(diff / minute), "minute")} ago`;
+    if (diff < day) return `${pluralize(Math.floor(diff / hour), "hour")} ago`;
+    if (diff < month) return `${pluralize(Math.floor(diff / day), "day")} ago`;
+    if (diff < year) return `${pluralize(Math.floor(diff / month), "month")} ago`;
+    return `${pluralize(Math.floor(diff / year), "year")} ago`;
 }
 
 function setActivePanel(which) {
@@ -538,6 +561,22 @@ async function getLatestCommitForPath(repo, path = "") {
     return promise;
 }
 
+async function getLatestRootCommit() {
+    const key = "__root_latest__";
+    if (latestCommitCache.has(key)) return latestCommitCache.get(key);
+
+    const promise = (async () => {
+        if (!allRepos.length) return null;
+        const repo = [...allRepos].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
+        if (!repo) return null;
+        const commit = await getLatestCommitForPath(repo, "");
+        return commit ? { repo, commit } : null;
+    })();
+
+    latestCommitCache.set(key, promise);
+    return promise;
+}
+
 async function getItemCommitDate(repo, path) {
     const key = cacheKey(repo.name, path);
     if (itemCommitCache.has(key)) return itemCommitCache.get(key);
@@ -606,11 +645,9 @@ function toggleSortMenu() {
 
 function updateMenuTexts() {
     const sortToggle = document.getElementById("menuSortToggle");
-    const commitToggle = document.getElementById("menuCommitToggle");
     const downloadBtn = document.getElementById("menuDownload");
 
     if (sortToggle) sortToggle.textContent = `Sort by… (${sortMode})`;
-    if (commitToggle) commitToggle.textContent = showLatestCommit ? "Hide latest commit" : "Show latest commit";
     if (downloadBtn) downloadBtn.textContent = "Download this repo…";
 
     updateSortButtons();
@@ -634,22 +671,44 @@ function setSortMode(mode) {
     }
 }
 
-function toggleLatestCommit() {
-    showLatestCommit = !showLatestCommit;
-    updateMenuTexts();
-    if (currentRepoName) {
-        if (currentFilePath) {
-            renderFile(currentRepoName, currentFilePath);
-        } else {
-            renderRepo(currentRepoName, currentInnerPath);
-        }
-    }
-}
-
 function downloadCurrentRepo() {
     const repo = findRepoByName(currentRepoName);
     if (!repo) return;
     window.location.href = getRepoDownloadUrl(repo);
+}
+
+function renderRootCommitStrip(commitData) {
+    const el = document.getElementById("rootCommitStrip");
+    if (!el) return;
+
+    if (!commitData || !commitData.commit) {
+        el.classList.remove("active");
+        el.innerHTML = "";
+        return;
+    }
+
+    const commit = commitData.commit;
+    const repo = commitData.repo;
+    const committerName =
+        commit?.commit?.committer?.name ||
+        commit?.commit?.author?.name ||
+        commit?.committer?.login ||
+        "Unknown";
+
+    const message = commit?.commit?.message ? commit.commit.message.split("\n")[0] : "";
+    const when = commit?.commit?.committer?.date || commit?.commit?.author?.date || "";
+    const repoPath = virtualRepoPath(repo.name);
+
+    el.innerHTML = `
+        <div class="label">Latest commit in /ZenithOS/</div>
+        <div class="row">
+            <div><span class="piece">repo:</span> ${escapeHtml(repoPath)}</div>
+            <div><span class="piece">committer:</span> ${escapeHtml(committerName)}</div>
+            <div><span class="piece">message:</span> ${escapeHtml(message || "—")}</div>
+            <div><span class="piece">date:</span> ${escapeHtml(humanizeAgo(when))}</div>
+        </div>
+    `;
+    el.classList.add("active");
 }
 
 async function enrichItemsForDateSort(repo, items, basePath) {
@@ -692,36 +751,6 @@ function itemRightLabel(item) {
     return "file";
 }
 
-function renderCommitStrip(containerId, commit, pathLabel) {
-    const el = document.getElementById(containerId);
-    if (!el) return;
-
-    if (!showLatestCommit || !commit) {
-        el.classList.remove("active");
-        el.innerHTML = "";
-        return;
-    }
-
-    const committerName =
-        commit?.commit?.committer?.name ||
-        commit?.commit?.author?.name ||
-        commit?.committer?.login ||
-        "Unknown";
-
-    const message = commit?.commit?.message ? commit.commit.message.split("\n")[0] : "";
-    const sha = commit?.sha || "";
-
-    el.innerHTML = `
-        <div class="label">Latest commit${pathLabel ? ` for ${escapeHtml(pathLabel)}` : ""}</div>
-        <div class="row">
-            <div><span class="piece">committer:</span> ${escapeHtml(committerName)}</div>
-            <div><span class="piece">message:</span> ${escapeHtml(message || "—")}</div>
-            <div><span class="piece">sha:</span> <span class="sha">${escapeHtml(sha || "—")}</span></div>
-        </div>
-    `;
-    el.classList.add("active");
-}
-
 async function renderRoot() {
     setActivePanel("root");
 
@@ -734,6 +763,12 @@ async function renderRoot() {
     title.textContent = "Index of /ZenithOS/";
     sub.textContent = `Showing ${allRepos.length} filtered repos`;
     table.innerHTML = "";
+
+    const rootCommitStrip = document.getElementById("rootCommitStrip");
+    if (rootCommitStrip) {
+        rootCommitStrip.classList.add("active");
+        rootCommitStrip.innerHTML = `<div class="label">Latest commit in /ZenithOS/</div><div class="row"><div class="piece">Loading…</div></div>`;
+    }
 
     allRepos.forEach(repo => {
         const tr = document.createElement("tr");
@@ -760,6 +795,16 @@ async function renderRoot() {
 
         table.appendChild(tr);
     });
+
+    try {
+        const commitData = await getLatestRootCommit();
+        renderRootCommitStrip(commitData);
+    } catch (_) {
+        if (rootCommitStrip) {
+            rootCommitStrip.classList.remove("active");
+            rootCommitStrip.innerHTML = "";
+        }
+    }
 }
 
 async function renderRepo(repoName, innerPath = "") {
@@ -828,7 +873,6 @@ async function renderRepo(repoName, innerPath = "") {
     }
 
     table.innerHTML = `<tr><td class="loading">Loading…</td><td></td></tr>`;
-    renderCommitStrip("repoCommitStrip", null, fullPath);
 
     try {
         const apiPath = innerPath ? `/${innerPath.split("/").map(encodeURIComponent).join("/")}` : "";
@@ -884,11 +928,8 @@ async function renderRepo(repoName, innerPath = "") {
             });
         }
 
-        const latestCommit = await getLatestCommitForPath(repo, innerPath);
-        renderCommitStrip("repoCommitStrip", latestCommit, fullPath);
     } catch (e) {
         table.innerHTML = `<tr><td class="error">Error: ${escapeHtml(e.message)}</td><td></td></tr>`;
-        renderCommitStrip("repoCommitStrip", null, fullPath);
     }
 }
 
@@ -928,8 +969,6 @@ async function renderFile(repoName, filePath) {
     fileHint.textContent = "file viewer";
     fileMeta.innerHTML = "";
     fileContent.textContent = "Loading…";
-    renderCommitStrip("fileCommitStrip", null, displayPath);
-
     try {
         const apiUrl = `https://api.github.com/repos/${OWNER}/${repo.name}/contents/${filePath.split("/").map(encodeURIComponent).join("/")}`;
         const fileData = await fetchJson(apiUrl);
@@ -966,11 +1005,8 @@ async function renderFile(repoName, filePath) {
         fileMeta.innerHTML = meta.join("");
         fileContent.textContent = text;
 
-        const latestCommit = await getLatestCommitForPath(repo, filePath);
-        renderCommitStrip("fileCommitStrip", latestCommit, displayPath);
     } catch (e) {
         fileContent.textContent = `Error: ${e.message}`;
-        renderCommitStrip("fileCommitStrip", null, displayPath);
     }
 }
 
@@ -1010,11 +1046,6 @@ document.getElementById("menuButton").addEventListener("click", (e) => {
 document.getElementById("menuSortToggle").addEventListener("click", (e) => {
     e.stopPropagation();
     toggleSortMenu();
-});
-
-document.getElementById("menuCommitToggle").addEventListener("click", (e) => {
-    e.stopPropagation();
-    toggleLatestCommit();
 });
 
 document.getElementById("menuDownload").addEventListener("click", (e) => {
