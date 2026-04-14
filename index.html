@@ -17,11 +17,13 @@
         --border: #222;
         --danger: #ff9b9b;
         --accent: #6fb1ff;
+        --add: #79d279;
+        --del: #ff7b7b;
+        --hunk: #caa6ff;
+        --chip: #151515;
     }
 
-    * {
-        box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
         background: var(--bg);
@@ -57,9 +59,7 @@
         cursor: pointer;
     }
 
-    .crumbs span {
-        color: var(--muted);
-    }
+    .crumbs span { color: var(--muted); }
 
     .hint {
         color: var(--muted);
@@ -76,14 +76,8 @@
         border-bottom: 1px solid transparent;
     }
 
-    tr:nth-child(even) {
-        background: var(--bg2);
-    }
-
-    tr:hover {
-        background: var(--bg3);
-        cursor: pointer;
-    }
+    tr:nth-child(even) { background: var(--bg2); }
+    tr:hover { background: var(--bg3); cursor: pointer; }
 
     .name {
         color: var(--link);
@@ -103,13 +97,8 @@
         display: block;
     }
 
-    .panel {
-        display: none;
-    }
-
-    .panel.active {
-        display: block;
-    }
+    .panel { display: none; }
+    .panel.active { display: block; }
 
     .loading,
     .error {
@@ -118,11 +107,11 @@
         font-size: 13px;
     }
 
-    .error {
-        color: var(--danger);
-    }
+    .error { color: var(--danger); }
 
-    .file-meta {
+    .file-meta,
+    .commit-meta,
+    .diff-meta {
         display: flex;
         gap: 16px;
         flex-wrap: wrap;
@@ -190,11 +179,11 @@
         border-left: 3px solid var(--accent);
         border-radius: 10px;
         display: none;
+        cursor: pointer;
+        user-select: none;
     }
 
-    .commit-strip.active {
-        display: block;
-    }
+    .commit-strip.active { display: block; }
 
     .commit-strip .label {
         font-size: 12px;
@@ -211,10 +200,7 @@
         color: var(--text);
     }
 
-    .commit-strip .piece {
-        color: var(--muted);
-    }
-
+    .commit-strip .piece { color: var(--muted); }
     .commit-strip .sha {
         color: var(--link);
         word-break: break-all;
@@ -237,9 +223,7 @@
         box-shadow: 0 10px 30px rgba(0,0,0,.25);
     }
 
-    .menu-btn.active {
-        display: flex;
-    }
+    .menu-btn.active { display: flex; }
 
     .menu-icon {
         width: 18px;
@@ -271,9 +255,7 @@
         box-shadow: 0 18px 40px rgba(0,0,0,.35);
     }
 
-    .menu-panel.open {
-        display: block;
-    }
+    .menu-panel.open { display: block; }
 
     .menu-item {
         width: 100%;
@@ -287,13 +269,8 @@
         font: inherit;
     }
 
-    .menu-item:hover {
-        background: var(--bg2);
-    }
-
-    .menu-item.active {
-        color: var(--link);
-    }
+    .menu-item:hover { background: var(--bg2); }
+    .menu-item.active { color: var(--link); }
 
     .menu-subtitle {
         color: var(--muted);
@@ -310,9 +287,7 @@
         display: none;
     }
 
-    .submenu.open {
-        display: block;
-    }
+    .submenu.open { display: block; }
 
     .submenu button {
         width: 100%;
@@ -326,52 +301,89 @@
         font: inherit;
     }
 
-    .submenu button:hover {
-        background: var(--bg2);
+    .submenu button:hover { background: var(--bg2); }
+    .submenu button.active { color: var(--link); }
+
+    .code-view { white-space: pre; }
+
+    .tok-comment { color: #6a9955; }
+    .tok-string { color: #ce9178; }
+    .tok-number { color: #b5cea8; }
+    .tok-keyword { color: #569cd6; }
+    .tok-type { color: #4ec9b0; }
+    .tok-attr { color: #9cdcfe; }
+    .tok-tag { color: #c586c0; }
+    .tok-punct { color: #d4d4d4; }
+    .tok-plain { color: inherit; }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: var(--chip);
+        border: 1px solid var(--border);
+        font-size: 12px;
+        color: var(--text);
     }
 
-    .submenu button.active {
-        color: var(--link);
+    .badge.add { color: var(--add); }
+    .badge.del { color: var(--del); }
+    .badge.mod { color: #ffd479; }
+    .badge.ren { color: #7ad7ff; }
+
+    .diff-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 10px 0 16px 0;
     }
 
-    .code-view {
+    .diff-file {
+        margin: 16px 0 22px 0;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        background: #090909;
+    }
+
+    .diff-file-head {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .diff-file-name {
+        color: var(--text);
+        word-break: break-all;
+    }
+
+    .diff-file-status { color: var(--muted); font-size: 12px; }
+
+    .diff-pre {
+        margin: 0;
+        padding: 14px 12px;
+        background: #080808;
+        overflow: auto;
         white-space: pre;
+        line-height: 1.45;
+        font-size: 12px;
     }
 
-    .tok-comment {
-        color: #6a9955;
-    }
-
-    .tok-string {
-        color: #ce9178;
-    }
-
-    .tok-number {
-        color: #b5cea8;
-    }
-
-    .tok-keyword {
-        color: #569cd6;
-    }
-
-    .tok-type {
-        color: #4ec9b0;
-    }
-
-    .tok-attr {
-        color: #9cdcfe;
-    }
-
-    .tok-tag {
-        color: #c586c0;
-    }
-
-    .tok-punct {
-        color: #d4d4d4;
-    }
-
-    .tok-plain {
-        color: inherit;
+    .diff-add { color: var(--add); }
+    .diff-del { color: var(--del); }
+    .diff-meta-line { color: #8b8b8b; }
+    .diff-hunk { color: var(--hunk); }
+    .diff-file-line { color: #9cdcfe; }
+    .diff-note {
+        margin: 12px 0 0 0;
+        color: var(--muted);
+        font-size: 12px;
     }
 </style>
 </head>
@@ -410,6 +422,7 @@
         <div class="crumbs" id="repoCrumbs"></div>
         <div class="hint" id="repoHint"></div>
     </div>
+    <div id="repoCommitStrip" class="commit-strip"></div>
     <table id="contentTable"></table>
 </div>
 
@@ -421,8 +434,22 @@
         </div>
         <div class="hint" id="fileHint"></div>
     </div>
+    <div id="fileCommitStrip" class="commit-strip"></div>
     <div class="file-meta" id="fileMeta"></div>
     <pre id="fileContent" class="code-view">Loading…</pre>
+</div>
+
+<div id="diffView" class="panel">
+    <h1 id="diffTitle">Commit diff</h1>
+    <div class="bar">
+        <div class="crumbs">
+            <a class="back" id="diffBack">← back</a>
+        </div>
+        <div class="hint" id="diffHint"></div>
+    </div>
+    <div class="diff-meta" id="diffMeta"></div>
+    <div class="diff-summary" id="diffSummary"></div>
+    <div id="diffBody"></div>
 </div>
 
 <div id="notFoundView" class="panel">
@@ -453,10 +480,12 @@ let repoMap = new Map();
 let currentRepoName = "";
 let currentInnerPath = "";
 let currentFilePath = "";
+let currentDiffReturn = null;
 
 let sortMode = "name";
 let latestCommitCache = new Map();
 let itemCommitCache = new Map();
+let commitDetailsCache = new Map();
 
 let menuOpen = false;
 let sortMenuOpen = false;
@@ -668,14 +697,29 @@ function highlightCode(code, language) {
     return escapeHtml(safe);
 }
 
+function highlightDiffPatch(patch) {
+    const lines = String(patch || "").split(/\r?\n/);
+    return lines.map(line => {
+        const esc = escapeHtml(line);
+        if (line.startsWith("diff --git") || line.startsWith("index ") || line.startsWith("new file mode") || line.startsWith("deleted file mode") || line.startsWith("similarity index") || line.startsWith("rename from") || line.startsWith("rename to")) {
+            return `<span class="diff-file-line">${esc}</span>`;
+        }
+        if (line.startsWith("@@")) return `<span class="diff-hunk">${esc}</span>`;
+        if (line.startsWith("+++") || line.startsWith("---")) return `<span class="diff-meta-line">${esc}</span>`;
+        if (line.startsWith("+") && !line.startsWith("+++")) return `<span class="diff-add">${esc}</span>`;
+        if (line.startsWith("-") && !line.startsWith("---")) return `<span class="diff-del">${esc}</span>`;
+        return esc;
+    }).join("\n");
+}
+
 function setActivePanel(which) {
-    const panels = ["rootView", "repoView", "fileView", "notFoundView"];
+    const panels = ["rootView", "repoView", "fileView", "diffView", "notFoundView"];
     for (const id of panels) {
         const el = document.getElementById(id);
         if (el) el.classList.toggle("active", id === `${which}View`);
     }
 
-    const showMenu = which === "repo" || which === "file";
+    const showMenu = which === "repo" || which === "file" || which === "diff";
     const menuBtn = document.getElementById("menuButton");
     if (menuBtn) menuBtn.classList.toggle("active", showMenu);
 
@@ -688,6 +732,22 @@ function decodePathPart(p) {
 
 function encodePathPart(p) {
     return encodeURIComponent(p).replaceAll("%2F", "/");
+}
+
+function buildDiffHash(repoName, sha, fromKind = "repo", fromPath = "") {
+    const segs = ["#/diff", encodePathPart(repoName), encodePathPart(sha), encodePathPart(fromKind)];
+    if (fromPath) segs.push(...fromPath.split("/").map(encodePathPart));
+    return segs.join("/");
+}
+
+function buildRepoHash(repoName, innerPath = "") {
+    return innerPath
+        ? `#/repo/${encodePathPart(repoName)}/${innerPath.split("/").map(encodePathPart).join("/")}`
+        : `#/repo/${encodePathPart(repoName)}`;
+}
+
+function buildFileHash(repoName, filePath) {
+    return `#/file/${encodePathPart(repoName)}/${filePath.split("/").map(encodePathPart).join("/")}`;
 }
 
 async function fetchJson(url) {
@@ -785,6 +845,17 @@ async function getItemCommitDate(repo, path) {
     return promise;
 }
 
+async function getCommitDetails(repo, sha) {
+    const key = `${repo.name}::${sha}`;
+    if (commitDetailsCache.has(key)) return commitDetailsCache.get(key);
+
+    const promise = fetchJson(`https://api.github.com/repos/${OWNER}/${repo.name}/commits/${encodeURIComponent(sha)}`)
+        .catch(() => null);
+
+    commitDetailsCache.set(key, promise);
+    return promise;
+}
+
 function getRepoDownloadUrl(repo) {
     return repo.zipball_url || `https://github.com/${OWNER}/${repo.name}/archive/refs/heads/${repo.default_branch || "main"}.zip`;
 }
@@ -865,13 +936,19 @@ function downloadCurrentRepo() {
     window.location.href = getRepoDownloadUrl(repo);
 }
 
-function renderRootCommitStrip(commitData) {
-    const el = document.getElementById("rootCommitStrip");
-    if (!el) return;
+function renderCommitStrip(targetEl, commitData, options = {}) {
+    if (!targetEl) return;
 
-    if (!commitData || !commitData.commit) {
-        el.classList.remove("active");
-        el.innerHTML = "";
+    const {
+        label = "Latest commit",
+        pathLabel = "",
+        clickHash = ""
+    } = options;
+
+    if (!commitData || !commitData.commit || !commitData.repo) {
+        targetEl.classList.remove("active");
+        targetEl.innerHTML = "";
+        targetEl.onclick = null;
         return;
     }
 
@@ -887,16 +964,20 @@ function renderRootCommitStrip(commitData) {
     const when = commit?.commit?.committer?.date || commit?.commit?.author?.date || "";
     const repoPath = virtualRepoPath(repo.name);
 
-    el.innerHTML = `
-        <div class="label">Latest commit in /ZenithOS/</div>
+    targetEl.innerHTML = `
+        <div class="label">${escapeHtml(label)}</div>
         <div class="row">
             <div><span class="piece">repo:</span> ${escapeHtml(repoPath)}</div>
+            ${pathLabel ? `<div><span class="piece">path:</span> ${escapeHtml(pathLabel)}</div>` : ""}
             <div><span class="piece">committer:</span> ${escapeHtml(committerName)}</div>
             <div><span class="piece">message:</span> ${escapeHtml(message || "—")}</div>
             <div><span class="piece">date:</span> ${escapeHtml(humanizeAgo(when))}</div>
+            <div><span class="piece">sha:</span> <span class="sha">${escapeHtml(shortSha(commit.sha || ""))}</span></div>
+            <div class="hint">click to open diff</div>
         </div>
     `;
-    el.classList.add("active");
+    targetEl.classList.add("active");
+    targetEl.onclick = clickHash ? () => { location.hash = clickHash; } : null;
 }
 
 async function enrichItemsForDateSort(repo, items, basePath) {
@@ -955,7 +1036,8 @@ async function renderRoot() {
     const rootCommitStrip = document.getElementById("rootCommitStrip");
     if (rootCommitStrip) {
         rootCommitStrip.classList.add("active");
-        rootCommitStrip.innerHTML = `<div class="label">Latest commit in /ZenithOS/</div><div class="row"><div class="piece">Loading…</div></div>`;
+        rootCommitStrip.innerHTML = `<div class="label">Latest commit across filtered repos</div><div class="row"><div class="piece">Loading…</div></div>`;
+        rootCommitStrip.onclick = null;
     }
 
     allRepos.forEach(repo => {
@@ -979,14 +1061,23 @@ async function renderRoot() {
         tr.appendChild(nameTd);
         tr.appendChild(dateTd);
 
-        tr.onclick = () => location.hash = "#/repo/" + encodePathPart(repo.name);
+        tr.onclick = () => location.hash = buildRepoHash(repo.name);
 
         table.appendChild(tr);
     });
 
     try {
         const commitData = await getLatestRootCommit();
-        renderRootCommitStrip(commitData);
+        if (commitData && commitData.commit) {
+            renderCommitStrip(rootCommitStrip, commitData, {
+                label: "Latest commit across filtered repos",
+                pathLabel: "repo root",
+                clickHash: buildDiffHash(commitData.repo.name, commitData.commit.sha, "repo", "")
+            });
+        } else if (rootCommitStrip) {
+            rootCommitStrip.classList.remove("active");
+            rootCommitStrip.innerHTML = "";
+        }
     } catch (_) {
         if (rootCommitStrip) {
             rootCommitStrip.classList.remove("active");
@@ -1005,6 +1096,7 @@ async function renderRepo(repoName, innerPath = "") {
     currentRepoName = repoName;
     currentInnerPath = innerPath;
     currentFilePath = "";
+    currentDiffReturn = null;
 
     setActivePanel("repo");
     updateMenuTexts();
@@ -1013,8 +1105,9 @@ async function renderRepo(repoName, innerPath = "") {
     const crumbs = document.getElementById("repoCrumbs");
     const hint = document.getElementById("repoHint");
     const table = document.getElementById("contentTable");
+    const commitStrip = document.getElementById("repoCommitStrip");
 
-    if (!title || !crumbs || !hint || !table) return;
+    if (!title || !crumbs || !hint || !table || !commitStrip) return;
 
     const basePath = virtualRepoPath(repo.name);
     const fullPath = innerPath ? `${basePath}/${innerPath}` : basePath;
@@ -1040,7 +1133,7 @@ async function renderRepo(repoName, innerPath = "") {
 
         const link = document.createElement("a");
         link.textContent = part;
-        link.onclick = () => location.hash = "#/repo/" + encodePathPart(repo.name);
+        link.onclick = () => location.hash = buildRepoHash(repo.name);
         crumbs.appendChild(link);
     }
 
@@ -1055,12 +1148,15 @@ async function renderRepo(repoName, innerPath = "") {
 
             const link = document.createElement("a");
             link.textContent = part;
-            link.onclick = () => location.hash = "#/repo/" + encodePathPart(repo.name) + "/" + encodePathPart(cur);
+            link.onclick = () => location.hash = buildRepoHash(repo.name, cur);
             crumbs.appendChild(link);
         }
     }
 
     table.innerHTML = `<tr><td class="loading">Loading…</td><td></td></tr>`;
+    commitStrip.classList.add("active");
+    commitStrip.innerHTML = `<div class="label">Latest commit in /${escapeHtml(fullPath)}/</div><div class="row"><div class="piece">Loading…</div></div>`;
+    commitStrip.onclick = null;
 
     try {
         const apiPath = innerPath ? `/${innerPath.split("/").map(encodeURIComponent).join("/")}` : "";
@@ -1068,7 +1164,7 @@ async function renderRepo(repoName, innerPath = "") {
         const data = await fetchJson(url);
 
         if (!Array.isArray(data) && data && data.type && data.type !== "dir") {
-            location.hash = `#/file/${encodePathPart(repo.name)}/${encodePathPart(innerPath)}`;
+            location.hash = buildFileHash(repo.name, innerPath);
             return;
         }
 
@@ -1098,13 +1194,13 @@ async function renderRepo(repoName, innerPath = "") {
                 const nextPath = innerPath ? `${innerPath}/${item.name}` : item.name;
 
                 if (item.type === "dir") {
-                    a.href = "#/repo/" + encodePathPart(repo.name) + "/" + encodePathPart(nextPath);
+                    a.href = buildRepoHash(repo.name, nextPath);
                     a.textContent = item.name + "/";
-                    tr.onclick = () => location.hash = "#/repo/" + encodePathPart(repo.name) + "/" + encodePathPart(nextPath);
+                    tr.onclick = () => location.hash = buildRepoHash(repo.name, nextPath);
                 } else {
-                    a.href = "#/file/" + encodePathPart(repo.name) + "/" + encodePathPart(nextPath);
+                    a.href = buildFileHash(repo.name, nextPath);
                     a.textContent = item.name;
-                    tr.onclick = () => location.hash = "#/file/" + encodePathPart(repo.name) + "/" + encodePathPart(nextPath);
+                    tr.onclick = () => location.hash = buildFileHash(repo.name, nextPath);
                 }
 
                 nameTd.appendChild(a);
@@ -1116,8 +1212,24 @@ async function renderRepo(repoName, innerPath = "") {
             });
         }
 
+        const commitData = await getLatestCommitForPath(repo, innerPath);
+        if (commitData && commitData.commit) {
+            renderCommitStrip(commitStrip, { repo, commit: commitData }, {
+                label: `Latest commit in /${fullPath}/`,
+                pathLabel: innerPath || "repo root",
+                clickHash: buildDiffHash(repo.name, commitData.sha, "repo", innerPath)
+            });
+        } else {
+            commitStrip.classList.remove("active");
+            commitStrip.innerHTML = "";
+            commitStrip.onclick = null;
+        }
+
     } catch (e) {
         table.innerHTML = `<tr><td class="error">Error: ${escapeHtml(e.message)}</td><td></td></tr>`;
+        commitStrip.classList.remove("active");
+        commitStrip.innerHTML = "";
+        commitStrip.onclick = null;
     }
 }
 
@@ -1131,6 +1243,7 @@ async function renderFile(repoName, filePath) {
     currentRepoName = repoName;
     currentInnerPath = "";
     currentFilePath = filePath;
+    currentDiffReturn = null;
 
     setActivePanel("file");
     updateMenuTexts();
@@ -1143,20 +1256,23 @@ async function renderFile(repoName, filePath) {
     const fileHint = document.getElementById("fileHint");
     const fileMeta = document.getElementById("fileMeta");
     const fileContent = document.getElementById("fileContent");
+    const commitStrip = document.getElementById("fileCommitStrip");
 
-    if (!fileTitle || !fileBack || !fileHint || !fileMeta || !fileContent) return;
+    if (!fileTitle || !fileBack || !fileHint || !fileMeta || !fileContent || !commitStrip) return;
 
     fileTitle.textContent = `Index of /ZenithOS/${displayPath}`;
     fileBack.onclick = () => {
         const parent = filePath.split("/").slice(0, -1).join("/");
-        location.hash = parent
-            ? `#/repo/${encodePathPart(repo.name)}/${encodePathPart(parent)}`
-            : `#/repo/${encodePathPart(repo.name)}`;
+        location.hash = parent ? buildRepoHash(repo.name, parent) : buildRepoHash(repo.name);
     };
 
     fileHint.textContent = "file viewer";
     fileMeta.innerHTML = "";
     fileContent.textContent = "Loading…";
+    commitStrip.classList.add("active");
+    commitStrip.innerHTML = `<div class="label">Latest commit touching this file</div><div class="row"><div class="piece">Loading…</div></div>`;
+    commitStrip.onclick = null;
+
     try {
         const apiUrl = `https://api.github.com/repos/${OWNER}/${repo.name}/contents/${filePath.split("/").map(encodeURIComponent).join("/")}`;
         const fileData = await fetchJson(apiUrl);
@@ -1195,8 +1311,114 @@ async function renderFile(repoName, filePath) {
         fileMeta.innerHTML = meta.join("");
         fileContent.innerHTML = highlightCode(text, language);
 
+        const latest = await getLatestCommitForPath(repo, filePath);
+        if (latest && latest.commit) {
+            renderCommitStrip(commitStrip, { repo, commit: latest }, {
+                label: `Latest commit touching /${displayPath}`,
+                pathLabel: filePath,
+                clickHash: buildDiffHash(repo.name, latest.sha, "file", filePath)
+            });
+        } else {
+            commitStrip.classList.remove("active");
+            commitStrip.innerHTML = "";
+            commitStrip.onclick = null;
+        }
+
     } catch (e) {
         fileContent.textContent = `Error: ${e.message}`;
+        commitStrip.classList.remove("active");
+        commitStrip.innerHTML = "";
+        commitStrip.onclick = null;
+    }
+}
+
+async function renderDiff(repoName, sha, fromKind = "repo", fromPath = "") {
+    const repo = findRepoByName(repoName);
+    if (!repo) {
+        renderNotFound();
+        return;
+    }
+
+    currentRepoName = repoName;
+    currentInnerPath = "";
+    currentFilePath = "";
+    currentDiffReturn = { kind: fromKind, path: fromPath };
+
+    setActivePanel("diff");
+    updateMenuTexts();
+
+    const diffTitle = document.getElementById("diffTitle");
+    const diffBack = document.getElementById("diffBack");
+    const diffHint = document.getElementById("diffHint");
+    const diffMeta = document.getElementById("diffMeta");
+    const diffSummary = document.getElementById("diffSummary");
+    const diffBody = document.getElementById("diffBody");
+
+    if (!diffTitle || !diffBack || !diffHint || !diffMeta || !diffSummary || !diffBody) return;
+
+    const backHash = fromKind === "file"
+        ? buildFileHash(repo.name, fromPath)
+        : buildRepoHash(repo.name, fromPath);
+
+    diffBack.onclick = () => location.hash = backHash;
+    diffTitle.textContent = `Commit diff: ${shortSha(sha)}`;
+    diffHint.textContent = `${virtualRepoPath(repo.name)}`;
+    diffMeta.innerHTML = "";
+    diffSummary.innerHTML = "";
+    diffBody.innerHTML = `<div class="loading">Loading diff…</div>`;
+
+    try {
+        const commit = await getCommitDetails(repo, sha);
+        if (!commit) {
+            diffBody.innerHTML = `<div class="error">Could not load commit details.</div>`;
+            return;
+        }
+
+        const commitMsg = commit?.commit?.message ? commit.commit.message.split("\n")[0] : "";
+        const authorName = commit?.commit?.author?.name || commit?.commit?.committer?.name || "Unknown";
+        const date = commit?.commit?.committer?.date || commit?.commit?.author?.date || "";
+        const stats = commit.stats || {};
+        const files = Array.isArray(commit.files) ? commit.files : [];
+
+        diffMeta.innerHTML = [
+            `<div><span class="small">repo:</span> <span class="path">${escapeHtml(virtualRepoPath(repo.name))}</span></div>`,
+            `<div><span class="small">sha:</span> ${escapeHtml(commit.sha || sha)}</div>`,
+            `<div><span class="small">author:</span> ${escapeHtml(authorName)}</div>`,
+            `<div><span class="small">message:</span> ${escapeHtml(commitMsg || "—")}</div>`,
+            `<div><span class="small">date:</span> ${escapeHtml(fmtDate(date))}</div>`
+        ].join("");
+
+        diffSummary.innerHTML = `
+            <span class="badge add">+${stats.additions || 0} additions</span>
+            <span class="badge del">-${stats.deletions || 0} deletions</span>
+            <span class="badge">${stats.total || 0} changes</span>
+            <span class="badge">${files.length} files</span>
+        `;
+
+        if (files.length === 0) {
+            diffBody.innerHTML = `<div class="diff-note">No file patch data available for this commit.</div>`;
+            return;
+        }
+
+        diffBody.innerHTML = files.map(file => {
+            const status = file.status || "modified";
+            const statusClass = status === "added" ? "add" : status === "removed" ? "del" : status === "renamed" ? "ren" : "mod";
+            const displayName = file.filename || file.previous_filename || "[unknown file]";
+            const patch = file.patch ? `<pre class="diff-pre">${highlightDiffPatch(file.patch)}</pre>` : `<pre class="diff-pre">[no textual patch available for this file]</pre>`;
+
+            return `
+                <section class="diff-file">
+                    <div class="diff-file-head">
+                        <div class="diff-file-name">${escapeHtml(displayName)}</div>
+                        <div class="diff-file-status"><span class="badge ${statusClass}">${escapeHtml(status)}</span></div>
+                    </div>
+                    ${patch}
+                </section>
+            `;
+        }).join("");
+
+    } catch (e) {
+        diffBody.innerHTML = `<div class="error">Error: ${escapeHtml(e.message)}</div>`;
     }
 }
 
@@ -1220,6 +1442,15 @@ async function route() {
         const repoName = decodePathPart(parts[1] || "");
         const filePath = parts.slice(2).map(decodePathPart).join("/");
         await renderFile(repoName, filePath);
+        return;
+    }
+
+    if (parts[0] === "diff") {
+        const repoName = decodePathPart(parts[1] || "");
+        const sha = decodePathPart(parts[2] || "");
+        const fromKind = decodePathPart(parts[3] || "repo") || "repo";
+        const fromPath = parts.slice(4).map(decodePathPart).join("/");
+        await renderDiff(repoName, sha, fromKind, fromPath);
         return;
     }
 
@@ -1276,3 +1507,4 @@ document.addEventListener("keydown", (e) => {
 
 </body>
 </html>
+
