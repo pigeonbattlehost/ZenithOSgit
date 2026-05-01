@@ -1,3 +1,32 @@
+<!--
+BSD 2-Clause License
+
+Copyright (c) 2026, LICGX
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -304,6 +333,52 @@
     .submenu button:hover { background: var(--bg2); }
     .submenu button.active { color: var(--link); }
 
+    .clone-strip {
+        margin: 8px 0 16px 0;
+        padding: 12px 14px;
+        background: #0a0a0a;
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--accent);
+        border-radius: 10px;
+        display: none;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .clone-strip.active { display: flex; }
+
+    .clone-strip .label {
+        font-size: 12px;
+        color: var(--muted);
+        min-width: 86px;
+    }
+
+    .clone-strip .cmd {
+        flex: 1 1 420px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #080808;
+        color: var(--text);
+        overflow: auto;
+        white-space: nowrap;
+        font-size: 13px;
+    }
+
+    .clone-strip .copy-btn {
+        border: 1px solid var(--border);
+        background: #111;
+        color: var(--text);
+        border-radius: 10px;
+        padding: 10px 12px;
+        cursor: pointer;
+        font: inherit;
+    }
+
+    .clone-strip .copy-btn:hover { background: var(--bg2); }
+    .clone-strip .copy-btn.done { color: var(--add); }
+
     .code-view { white-space: pre; }
 
     .tok-comment { color: #6a9955; }
@@ -423,6 +498,11 @@
         <div class="hint" id="repoHint"></div>
     </div>
     <div id="repoCommitStrip" class="commit-strip"></div>
+    <div id="cloneStrip" class="clone-strip">
+        <div class="label">Git clone:</div>
+        <div id="cloneCommand" class="cmd"></div>
+        <button id="cloneCopyBtn" class="copy-btn" type="button">Copy</button>
+    </div>
     <table id="contentTable"></table>
 </div>
 
@@ -584,7 +664,7 @@ function highlightXml(code) {
                 break;
             }
             if (rest.startsWith("<![CDATA[")) {
-                const end = rest.indexOf("]]>");
+                const end = rest.indexOf("]]> ");
                 const chunk = end >= 0 ? rest.slice(0, end + 3) : rest;
                 out += tokenSpan("tok-string", escapeAndPreserveSpaces(chunk));
                 i += chunk.length;
@@ -860,6 +940,34 @@ function getRepoDownloadUrl(repo) {
     return repo.zipball_url || `https://github.com/${OWNER}/${repo.name}/archive/refs/heads/${repo.default_branch || "main"}.zip`;
 }
 
+function getCloneCommand(repo) {
+    return `git clone https://github.com/${OWNER}/${repo.name}.git`;
+}
+
+async function copyToClipboard(text) {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+    } catch (_) {}
+
+    try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+    } catch (_) {
+        return false;
+    }
+}
+
 function renderNotFound(message = "Repo not found! Try again..") {
     document.getElementById("notFoundText").textContent = message;
     setActivePanel("notFound");
@@ -1106,8 +1214,11 @@ async function renderRepo(repoName, innerPath = "") {
     const hint = document.getElementById("repoHint");
     const table = document.getElementById("contentTable");
     const commitStrip = document.getElementById("repoCommitStrip");
+    const cloneStrip = document.getElementById("cloneStrip");
+    const cloneCommand = document.getElementById("cloneCommand");
+    const cloneCopyBtn = document.getElementById("cloneCopyBtn");
 
-    if (!title || !crumbs || !hint || !table || !commitStrip) return;
+    if (!title || !crumbs || !hint || !table || !commitStrip || !cloneStrip || !cloneCommand || !cloneCopyBtn) return;
 
     const basePath = virtualRepoPath(repo.name);
     const fullPath = innerPath ? `${basePath}/${innerPath}` : basePath;
@@ -1157,6 +1268,21 @@ async function renderRepo(repoName, innerPath = "") {
     commitStrip.classList.add("active");
     commitStrip.innerHTML = `<div class="label">Latest commit in /${escapeHtml(fullPath)}/</div><div class="row"><div class="piece">Loading…</div></div>`;
     commitStrip.onclick = null;
+
+    cloneStrip.classList.add("active");
+    cloneCommand.textContent = getCloneCommand(repo);
+    cloneCopyBtn.textContent = "Copy";
+    cloneCopyBtn.classList.remove("done");
+    cloneCopyBtn.onclick = async (e) => {
+        e.stopPropagation();
+        const ok = await copyToClipboard(getCloneCommand(repo));
+        cloneCopyBtn.textContent = ok ? "Copied" : "Copy failed";
+        cloneCopyBtn.classList.toggle("done", ok);
+        if (ok) setTimeout(() => {
+            cloneCopyBtn.textContent = "Copy";
+            cloneCopyBtn.classList.remove("done");
+        }, 1500);
+    };
 
     try {
         const apiPath = innerPath ? `/${innerPath.split("/").map(encodeURIComponent).join("/")}` : "";
