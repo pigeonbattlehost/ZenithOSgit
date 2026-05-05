@@ -19,7 +19,7 @@ AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
 LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+CONSEQUENTIAL DAMAGES INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
 SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
 INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
@@ -460,6 +460,140 @@ POSSIBILITY OF SUCH DAMAGE.
         color: var(--muted);
         font-size: 12px;
     }
+
+    .search-wrap {
+        margin: 0 0 18px 0;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #0a0a0a;
+    }
+
+    .search-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .search-input {
+        flex: 1 1 340px;
+        min-width: 220px;
+        background: #080808;
+        border: 1px solid var(--border);
+        color: var(--text);
+        font: inherit;
+        padding: 11px 12px;
+        border-radius: 10px;
+        outline: none;
+    }
+
+    .search-input:focus {
+        border-color: #35557a;
+        box-shadow: 0 0 0 2px rgba(138,180,248,.08);
+    }
+
+    .search-btn,
+    .search-mode-btn,
+    .raw-btn {
+        border: 1px solid var(--border);
+        background: #111;
+        color: var(--text);
+        border-radius: 10px;
+        padding: 10px 12px;
+        cursor: pointer;
+        font: inherit;
+    }
+
+    .search-btn:hover,
+    .search-mode-btn:hover,
+    .raw-btn:hover {
+        background: var(--bg2);
+    }
+
+    .search-mode-btn.active {
+        color: var(--link);
+    }
+
+    .search-meta {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 12px;
+    }
+
+    .result-group {
+        margin-top: 16px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .result-title {
+        padding: 10px 12px;
+        background: #0b0b0b;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+        font-size: 13px;
+    }
+
+    .result-item {
+        padding: 10px 12px;
+        border-top: 1px solid #151515;
+        cursor: pointer;
+        background: #090909;
+    }
+
+    .result-item:hover { background: var(--bg2); }
+
+    .result-main {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+        flex-wrap: wrap;
+    }
+
+    .result-name {
+        color: var(--link);
+        word-break: break-word;
+    }
+
+    .result-path {
+        color: var(--muted);
+        font-size: 12px;
+    }
+
+    .result-snippet {
+        margin-top: 6px;
+        color: var(--text);
+        font-size: 12px;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .pill {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--border);
+        background: #111;
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 11px;
+        color: var(--muted);
+    }
+
+    .toolbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .inline-note {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 8px;
+    }
 </style>
 </head>
 <body>
@@ -487,6 +621,20 @@ POSSIBILITY OF SUCH DAMAGE.
 <div id="rootView" class="panel active">
     <h1 id="rootTitle">Index of /ZenithOS/</h1>
     <div class="sub" id="rootSub">Loading repos…</div>
+
+    <div class="search-wrap">
+        <div class="toolbar">
+            <button id="homeTabFiles" class="search-mode-btn active" type="button">Search by filename</button>
+            <button id="homeTabCode" class="search-mode-btn" type="button">Search by code</button>
+        </div>
+        <div class="search-row">
+            <input id="homeSearchInput" class="search-input" type="text" placeholder="Searching.." autocomplete="off" spellcheck="false" />
+            <button id="homeSearchBtn" class="search-btn" type="button">Search</button>
+        </div>
+        <div id="homeSearchMeta" class="search-meta">Search across all loaded repos.</div>
+        <div id="homeSearchResults"></div>
+    </div>
+
     <div id="rootCommitStrip" class="commit-strip"></div>
     <table id="repoTable"></table>
 </div>
@@ -516,6 +664,8 @@ POSSIBILITY OF SUCH DAMAGE.
     </div>
     <div id="fileCommitStrip" class="commit-strip"></div>
     <div class="file-meta" id="fileMeta"></div>
+    <div id="fileAlert"></div>
+    <div id="fileRawActions" class="inline-note" style="display:none; margin-bottom:10px;"></div>
     <pre id="fileContent" class="code-view">Loading…</pre>
 </div>
 
@@ -549,10 +699,24 @@ const allowedPrefixes = [
     "developers","development","device","docs","external",
     "frameworks","hardware","libcore","libnativehelper",
     "make","ndk","packages","pdk","prebuilts","sdk",
-    "system","tools", "vendor"
+    "system","tools", "vendor", "platform"
 ];
 
 const GITHUB_TOKEN = "";
+
+const TEXT_EXTENSIONS = new Set([
+    ".txt", ".md", ".json", ".xml", ".html", ".htm", ".xsd", ".xsl", ".c", ".h", ".cc", ".cpp", ".cxx", ".hpp", ".hh", ".java", ".kt", ".kts", ".js", ".ts", ".css", ".py", ".sh", ".bash", ".zsh", ".ini", ".cfg", ".conf", ".toml", ".yml", ".yaml", ".gradle", ".mk", ".am", ".cmake", ".bat", ".ps1", ".rs", ".go", ".php", ".rb", ".lua", ".swift", ".sql"
+]);
+
+const IMAGE_EXTENSIONS = new Set([
+    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tif", ".tiff", ".avif", ".svg", ".ico"
+]);
+
+const VIDEO_EXTENSIONS = new Set([
+    ".mp4", ".mkv", ".webm", ".mov", ".avi", ".m4v", ".3gp", ".mpg", ".mpeg", ".ogv"
+]);
+
+const RAW_BLOCKED_EXTENSIONS = new Set([...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS]);
 
 let allRepos = [];
 let repoMap = new Map();
@@ -566,9 +730,12 @@ let sortMode = "name";
 let latestCommitCache = new Map();
 let itemCommitCache = new Map();
 let commitDetailsCache = new Map();
+let treeCache = new Map();
+let fileSearchCache = new Map();
 
 let menuOpen = false;
 let sortMenuOpen = false;
+let homeSearchMode = "filename"; // filename | code
 
 function headers() {
     const h = { "Accept": "application/vnd.github+json" };
@@ -640,6 +807,27 @@ function tokenSpan(cls, value) {
     return `<span class="${cls}">${value}</span>`;
 }
 
+function getExt(name) {
+    const lower = String(name || "").toLowerCase();
+    const idx = lower.lastIndexOf(".");
+    return idx >= 0 ? lower.slice(idx) : "";
+}
+
+function isBinaryLikeName(name) {
+    const ext = getExt(name);
+    return ext === ".bin";
+}
+
+function isImageOrVideoName(name) {
+    const ext = getExt(name);
+    return IMAGE_EXTENSIONS.has(ext) || VIDEO_EXTENSIONS.has(ext);
+}
+
+function isProbablyTextName(name) {
+    const ext = getExt(name);
+    return TEXT_EXTENSIONS.has(ext) || ext === "";
+}
+
 function classifyLanguage(fileName, fileData) {
     const lower = (fileName || "").toLowerCase();
     if (lower.endsWith(".xml") || lower.endsWith(".xsd") || lower.endsWith(".xsl") || lower.endsWith(".html") || lower.endsWith(".htm")) return "xml";
@@ -664,7 +852,7 @@ function highlightXml(code) {
                 break;
             }
             if (rest.startsWith("<![CDATA[")) {
-                const end = rest.indexOf("]]> ");
+                const end = rest.indexOf("]]>");
                 const chunk = end >= 0 ? rest.slice(0, end + 3) : rest;
                 out += tokenSpan("tok-string", escapeAndPreserveSpaces(chunk));
                 i += chunk.length;
@@ -1128,18 +1316,282 @@ function itemRightLabel(item) {
     return "file";
 }
 
+function appendSearchResult(container, item) {
+    const row = document.createElement("div");
+    row.className = "result-item";
+    row.dataset.repo = item.repoName;
+    row.dataset.path = item.path;
+    row.dataset.kind = item.kind;
+
+    row.innerHTML = `
+        <div class="result-main">
+            <span class="result-name">${escapeHtml(item.name)}</span>
+            <span class="pill">${escapeHtml(item.kindLabel)}</span>
+        </div>
+        <div class="result-path">${escapeHtml(item.displayPath)}</div>
+        ${item.snippet ? `<div class="result-snippet">${escapeHtml(item.snippet)}</div>` : ""}
+    `;
+
+    row.onclick = () => {
+        if (item.kind === "file") location.hash = buildFileHash(item.repoName, item.path);
+        else if (item.kind === "dir") location.hash = buildRepoHash(item.repoName, item.path);
+        else location.hash = buildRepoHash(item.repoName);
+    };
+
+    container.appendChild(row);
+}
+
+async function fetchRepoTree(repo) {
+    if (treeCache.has(repo.name)) return treeCache.get(repo.name);
+    const promise = (async () => {
+        try {
+            const branch = repo.default_branch || "main";
+            const url = `https://api.github.com/repos/${OWNER}/${repo.name}/git/trees/${encodeURIComponent(branch)}?recursive=1`;
+            const data = await fetchJson(url);
+            const tree = Array.isArray(data?.tree) ? data.tree : [];
+            return tree.filter(x => x && x.path && x.type);
+        } catch (_) {
+            return [];
+        }
+    })();
+    treeCache.set(repo.name, promise);
+    return promise;
+}
+
+async function searchByFilename(query) {
+    const q = query.trim().toLowerCase();
+    const results = [];
+    if (!q) return results;
+
+    for (const repo of allRepos) {
+        const tree = await fetchRepoTree(repo);
+        for (const node of tree) {
+            const name = node.path.split("/").pop() || node.path;
+            if (!name.toLowerCase().includes(q) && !node.path.toLowerCase().includes(q)) continue;
+            const isDir = node.type === "tree";
+            const displayPath = `${virtualRepoPath(repo.name)}/${node.path}`;
+            results.push({
+                repoName: repo.name,
+                path: node.path,
+                name,
+                kind: isDir ? "dir" : "file",
+                kindLabel: isDir ? "Directory" : "File",
+                displayPath,
+                snippet: isDir ? "" : node.path,
+            });
+            if (results.length >= 80) return results;
+        }
+    }
+    return results;
+}
+
+function looksBinaryContent(text) {
+    if (typeof text !== "string" || !text) return false;
+    let nul = 0;
+    const sample = text.slice(0, 4096);
+    for (let i = 0; i < sample.length; i++) if (sample.charCodeAt(i) === 0) nul++;
+    return nul > 0;
+}
+
+function snippetFromText(text, query, maxLen = 140) {
+    const lower = text.toLowerCase();
+    const q = query.toLowerCase();
+    const idx = lower.indexOf(q);
+    if (idx < 0) return text.slice(0, maxLen);
+    const start = Math.max(0, idx - 40);
+    const end = Math.min(text.length, idx + q.length + 80);
+    return (start > 0 ? "…" : "") + text.slice(start, end).replace(/\s+/g, " ") + (end < text.length ? "…" : "");
+}
+
+async function searchByCode(query) {
+    const q = query.trim();
+    const results = [];
+    if (!q) return results;
+
+    const normalized = q.toLowerCase();
+
+    for (const repo of allRepos) {
+        const tree = await fetchRepoTree(repo);
+        const fileNodes = tree.filter(n => n.type === "blob");
+
+        for (const node of fileNodes) {
+            const name = node.path.split("/").pop() || node.path;
+            const ext = getExt(name);
+            const likelyText = isProbablyTextName(name);
+            if (!likelyText && !isBinaryLikeName(name)) continue;
+
+            const cacheKeyValue = `${repo.name}::${node.path}`;
+            let content = fileSearchCache.get(cacheKeyValue);
+            if (content === undefined) {
+                content = null;
+                try {
+                    const url = `https://api.github.com/repos/${OWNER}/${repo.name}/contents/${node.path.split("/").map(encodeURIComponent).join("/")}`;
+                    const data = await fetchJson(url);
+                    if (data?.encoding === "base64" && typeof data.content === "string") {
+                        content = decodeBase64Utf8(data.content.replace(/\n/g, ""));
+                    } else if (data?.download_url && likelyText) {
+                        content = await fetchText(data.download_url);
+                    }
+                } catch (_) {
+                    content = null;
+                }
+                fileSearchCache.set(cacheKeyValue, content);
+            }
+
+            if (content == null) continue;
+
+            if (isBinaryLikeName(name)) {
+                const hit = (content || "").toLowerCase().includes(normalized);
+                if (!hit) continue;
+                results.push({
+                    repoName: repo.name,
+                    path: node.path,
+                    name,
+                    kind: "file",
+                    kindLabel: ".bin raw",
+                    displayPath: `${virtualRepoPath(repo.name)}/${node.path}`,
+                    snippet: "raw binary match"
+                });
+            } else {
+                const hit = content.toLowerCase().includes(normalized);
+                if (!hit) continue;
+                results.push({
+                    repoName: repo.name,
+                    path: node.path,
+                    name,
+                    kind: "file",
+                    kindLabel: "Code",
+                    displayPath: `${virtualRepoPath(repo.name)}/${node.path}`,
+                    snippet: snippetFromText(content, q)
+                });
+            }
+
+            if (results.length >= 100) return results;
+        }
+    }
+
+    return results;
+}
+
+function renderHomeSearchState(text) {
+    const meta = document.getElementById("homeSearchMeta");
+    if (meta) meta.textContent = text;
+}
+
+async function runHomeSearch() {
+    const input = document.getElementById("homeSearchInput");
+    const resultsEl = document.getElementById("homeSearchResults");
+    const meta = document.getElementById("homeSearchMeta");
+    const query = input ? input.value.trim() : "";
+
+    if (!resultsEl) return;
+
+    if (!query) {
+        resultsEl.innerHTML = "";
+        renderHomeSearchState("Search across all loaded repos.");
+        return;
+    }
+
+    resultsEl.innerHTML = `<div class="loading">searching..</div>`;
+    renderHomeSearchState(homeSearchMode === "filename" ? "Searching by filename across all repos…" : "Searching by code across all repos…");
+
+    try {
+        const results = homeSearchMode === "filename"
+            ? await searchByFilename(query)
+            : await searchByCode(query);
+
+        if (!results.length) {
+            resultsEl.innerHTML = `<div class="inline-note">No results. Sadge.</div>`;
+            renderHomeSearchState("No results found.");
+            return;
+        }
+
+        const groupTitle = homeSearchMode === "filename"
+            ? "Search by filename"
+            : "Search by code";
+
+        resultsEl.innerHTML = "";
+        const group = document.createElement("div");
+        group.className = "result-group";
+        group.innerHTML = `<div class="result-title">${escapeHtml(groupTitle)} — ${results.length} result${results.length === 1 ? "" : "s"}</div>`;
+
+        results.forEach(item => appendSearchResult(group, item));
+        resultsEl.appendChild(group);
+        renderHomeSearchState(homeSearchMode === "filename"
+            ? `Found ${results.length} path${results.length === 1 ? "" : "s"}.`
+            : `Found ${results.length} code hit${results.length === 1 ? "" : "s"}.`);
+    } catch (e) {
+        resultsEl.innerHTML = `<div class="error">Search failed: ${escapeHtml(e.message)}</div>`;
+        renderHomeSearchState("Search failed.");
+    }
+}
+
+function hexDump(text, bytesPerLine = 16) {
+    const bytes = new TextEncoder().encode(String(text || ""));
+    let out = "";
+    for (let i = 0; i < bytes.length; i += bytesPerLine) {
+        const slice = bytes.slice(i, i + bytesPerLine);
+        const hex = Array.from(slice).map(b => b.toString(16).padStart(2, "0")).join(" ");
+        const ascii = Array.from(slice).map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : ".").join("");
+        out += i.toString(16).padStart(8, "0") + "  " + hex.padEnd(bytesPerLine * 3 - 1, " ") + "  |" + ascii + "|\n";
+    }
+    return out || "";
+}
+
+function showRawViewButton(repoName, filePath) {
+    const rawActions = document.getElementById("fileRawActions");
+    const fileAlert = document.getElementById("fileAlert");
+    if (!rawActions || !fileAlert) return;
+
+    const rawUrl = `https://api.github.com/repos/${OWNER}/${repoName}/contents/${filePath.split("/").map(encodeURIComponent).join("/")}`;
+    rawActions.style.display = "block";
+    rawActions.innerHTML = `<button id="viewRawBtn" class="raw-btn" type="button">View raw</button>`;
+
+    const btn = document.getElementById("viewRawBtn");
+    if (btn) {
+        btn.onclick = async () => {
+            try {
+                const data = await fetchJson(rawUrl);
+                let content = "";
+                if (data?.encoding === "base64" && typeof data.content === "string") {
+                    content = decodeBase64Utf8(data.content.replace(/\n/g, ""));
+                } else if (data?.download_url) {
+                    content = await fetchText(data.download_url);
+                } else {
+                    content = "[unavailable raw file]";
+                }
+                const fileContent = document.getElementById("fileContent");
+                if (fileContent) fileContent.textContent = content;
+                fileAlert.innerHTML = "";
+                rawActions.innerHTML = "";
+                rawActions.style.display = "none";
+            } catch (e) {
+                fileAlert.innerHTML = `<div class="error">Raw view failed: ${escapeHtml(e.message)}</div>`;
+            }
+        };
+    }
+}
+
 async function renderRoot() {
     setActivePanel("root");
 
     const table = document.getElementById("repoTable");
     const sub = document.getElementById("rootSub");
     const title = document.getElementById("rootTitle");
+    const input = document.getElementById("homeSearchInput");
+    const resultsEl = document.getElementById("homeSearchResults");
 
     if (!table || !sub || !title) return;
 
     title.textContent = "Index of /ZenithOS/";
     sub.textContent = `Showing ${allRepos.length} filtered repos`;
     table.innerHTML = "";
+
+    if (input) {
+        input.placeholder = homeSearchMode === "filename" ? "Searching.." : "Search by code..";
+    }
+
+    if (resultsEl) resultsEl.innerHTML = "";
 
     const rootCommitStrip = document.getElementById("rootCommitStrip");
     if (rootCommitStrip) {
@@ -1383,8 +1835,10 @@ async function renderFile(repoName, filePath) {
     const fileMeta = document.getElementById("fileMeta");
     const fileContent = document.getElementById("fileContent");
     const commitStrip = document.getElementById("fileCommitStrip");
+    const fileAlert = document.getElementById("fileAlert");
+    const rawActions = document.getElementById("fileRawActions");
 
-    if (!fileTitle || !fileBack || !fileHint || !fileMeta || !fileContent || !commitStrip) return;
+    if (!fileTitle || !fileBack || !fileHint || !fileMeta || !fileContent || !commitStrip || !fileAlert || !rawActions) return;
 
     fileTitle.textContent = `Index of /ZenithOS/${displayPath}`;
     fileBack.onclick = () => {
@@ -1394,6 +1848,9 @@ async function renderFile(repoName, filePath) {
 
     fileHint.textContent = "file viewer";
     fileMeta.innerHTML = "";
+    fileAlert.innerHTML = "";
+    rawActions.innerHTML = "";
+    rawActions.style.display = "none";
     fileContent.textContent = "Loading…";
     commitStrip.classList.add("active");
     commitStrip.innerHTML = `<div class="label">Latest commit touching this file</div><div class="row"><div class="piece">Loading…</div></div>`;
@@ -1404,6 +1861,8 @@ async function renderFile(repoName, filePath) {
         const fileData = await fetchJson(apiUrl);
 
         let text = "";
+        let isRawBinary = false;
+        let isBlockedMedia = false;
 
         if (fileData && fileData.encoding === "base64" && typeof fileData.content === "string") {
             text = decodeBase64Utf8(fileData.content.replace(/\n/g, ""));
@@ -1414,6 +1873,8 @@ async function renderFile(repoName, filePath) {
         }
 
         const language = classifyLanguage(fileData?.name || filePath, fileData);
+        isRawBinary = isBinaryLikeName(fileData?.name || filePath);
+        isBlockedMedia = isImageOrVideoName(fileData?.name || filePath);
 
         let commit = null;
         try {
@@ -1435,7 +1896,37 @@ async function renderFile(repoName, filePath) {
         }
 
         fileMeta.innerHTML = meta.join("");
-        fileContent.innerHTML = highlightCode(text, language);
+
+        if (isBlockedMedia) {
+            fileAlert.innerHTML = `<div class="error">We can't show this type of files right now. Sorry!</div>`;
+            rawActions.style.display = "block";
+            rawActions.innerHTML = `<button id="viewRawBtn" class="raw-btn" type="button">View raw</button>`;
+            const btn = document.getElementById("viewRawBtn");
+            if (btn) {
+                btn.onclick = async () => {
+                    try {
+                        if (fileData?.download_url) {
+                            window.open(fileData.download_url, "_blank", "noopener,noreferrer");
+                        } else {
+                            const latest = await fetchJson(apiUrl);
+                            if (latest?.download_url) window.open(latest.download_url, "_blank", "noopener,noreferrer");
+                        }
+                    } catch (e) {
+                        fileAlert.innerHTML = `<div class="error">Raw view failed: ${escapeHtml(e.message)}</div>`;
+                    }
+                };
+            }
+            fileContent.textContent = `[blocked media file]\n${displayPath}`;
+        } else if (isRawBinary) {
+            fileAlert.innerHTML = `<div class="inline-note">Binary raw mode enabled.</div>`;
+            const hex = hexDump(text);
+            fileContent.textContent = hex || "[empty binary]";
+        } else if (looksBinaryContent(text) && !isProbablyTextName(fileData?.name || filePath)) {
+            fileAlert.innerHTML = `<div class="inline-note">Binary-ish content detected.</div>`;
+            fileContent.textContent = hexDump(text);
+        } else {
+            fileContent.innerHTML = highlightCode(text, language);
+        }
 
         const latest = await getLatestCommitForPath(repo, filePath);
         if (latest && latest.commit) {
@@ -1620,10 +2111,36 @@ document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeMenu();
 });
 
+function setHomeSearchMode(mode) {
+    homeSearchMode = mode;
+    const filesBtn = document.getElementById("homeTabFiles");
+    const codeBtn = document.getElementById("homeTabCode");
+    const input = document.getElementById("homeSearchInput");
+    const meta = document.getElementById("homeSearchMeta");
+    if (filesBtn && codeBtn) {
+        filesBtn.classList.toggle("active", mode === "filename");
+        codeBtn.classList.toggle("active", mode === "code");
+    }
+    if (input) input.placeholder = mode === "filename" ? "Searching.." : "Search by code..";
+    if (meta) meta.textContent = mode === "filename"
+        ? "Search across all loaded repos by filename or directory path."
+        : "Search across all loaded repos by file contents.";
+    const results = document.getElementById("homeSearchResults");
+    if (results) results.innerHTML = "";
+}
+
+document.getElementById("homeTabFiles").addEventListener("click", () => setHomeSearchMode("filename"));
+document.getElementById("homeTabCode").addEventListener("click", () => setHomeSearchMode("code"));
+document.getElementById("homeSearchBtn").addEventListener("click", runHomeSearch);
+document.getElementById("homeSearchInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") runHomeSearch();
+});
+
 (async function init() {
     try {
         await loadAllRepos();
         updateMenuTexts();
+        setHomeSearchMode("filename");
         await route();
     } catch (e) {
         renderNotFound("Repo not found! Try again..");
