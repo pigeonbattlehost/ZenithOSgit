@@ -702,7 +702,39 @@ const allowedPrefixes = [
     "system","tools", "vendor", "platform"
 ];
 
-const GITHUB_TOKEN = "";
+let GITHUB_TOKEN = localStorage.getItem('gh_pat') || "";
+
+function headers() {
+    const h = { "Accept": "application/vnd.github+json" };
+    if (GITHUB_TOKEN) {
+        h["Authorization"] = "Bearer " + GITHUB_TOKEN;
+    }
+    return h;
+}
+
+(async function init() {
+    try {
+        if (!localStorage.getItem('gh_pat')) {
+            const userToken = prompt("Please write your GitHub PAT in the input box. Needs to bypass the API that gives 60 requests per hour only. Make sure it's correct either it won't work!");
+            if (userToken) {
+                localStorage.setItem('gh_pat', userToken);
+                GITHUB_TOKEN = userToken;
+            }
+        }
+
+        await loadAllRepos();
+        updateMenuTexts();
+        setHomeSearchMode("filename");
+        await route();
+    } catch (e) {
+        if (e.message.includes("401")) {
+            localStorage.removeItem('gh_pat');
+            renderNotFound("Invalid PAT! Refresh the page and try again.");
+        } else {
+            renderNotFound("Repo not found! Try again..");
+        }
+    }
+})();
 
 const TEXT_EXTENSIONS = new Set([
     ".txt", ".md", ".json", ".xml", ".html", ".htm", ".xsd", ".xsl", ".c", ".h", ".cc", ".cpp", ".cxx", ".hpp", ".hh", ".java", ".kt", ".kts", ".js", ".ts", ".css", ".py", ".sh", ".bash", ".zsh", ".ini", ".cfg", ".conf", ".toml", ".yml", ".yaml", ".gradle", ".mk", ".am", ".cmake", ".bat", ".ps1", ".rs", ".go", ".php", ".rb", ".lua", ".swift", ".sql"
